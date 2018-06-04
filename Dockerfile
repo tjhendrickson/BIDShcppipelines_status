@@ -1,4 +1,5 @@
-FROM bids/base_fsl
+# Use Ubuntu 14.04 LTS
+FROM ubuntu:trusty-20170119
 
 # Install python and nibabel
 RUN apt-get update && \
