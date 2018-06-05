@@ -16,7 +16,12 @@ __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
 #create csv
 with open('HCP_processing_status.csv', 'w') as csvfile:
     fieldnames = ['subject_id', 'session_id', 'PreFreeSurfer', 'Finish Date', 'FreeSurfer', 'Finish Date', 'PostFreeSurfer', \
-                  'fMRIVolume', 'Finish Date', 'fMRISurface', 'Finish Date', 'ICAFIX', 'Finish Date', 'PostFix', ]
+                  'fMRIVolume', 'Finish Date', 'fMRISurface', 'Finish Date', 'ICAFIX', 'Finish Date', 'PostFix', 'Finish Date', \
+                  'RestingStateStats', 'Finish Date', 'DiffusionProcessing', 'Finish Date']
+
+#month dictionary
+monthDict ={'Jan':'01', 'Feb':'02', 'Mar':'03', 'Apr':'04','May':'05', 'Jun':'06', 'Jul':'07', 'Aug':'08', 'Sep':'09',
+            'Oct':'10', 'Nov':'11', 'Dec':'12'}
 
 
 def run(command, env={}):
@@ -41,36 +46,56 @@ def run_pre_freesurfer(**args):
     cmd = cmd.format(**args)
     output = run(cmd, cwd=args["path"], env={"OMP_NUM_THREADS": str(args["n_cpus"])})
     if len(output) > 0:
+        finish_year = output.rstrip().split(" ")[7]
+        finish_month = output.rstrip().split(" ")[3]
+        finish_month = monthDict.get(finish_month)
+        finish_day = output.rstrip().split(" ")[4]
+        pre_FS_finish = finish_year + '/' + finish_month + '/' + finish_day
+        pre_FS = 'X'
+    else:
+        pre_FS = ' '
+        pre_FS_finish = ' '
+
 
 
 
 def run_freesurfer(**args):
     args.update(os.environ)
     args["subjectDIR"] = os.path.join(args["path"], args["subject"], "T1w")
-    cmd = ' '
-
+    cmd = subprocess.check_output("cat {subjectDIR}/{subject}/scripts/recon-all.log | grep 'finished without error' ", shell=True)
     cmd = cmd.format(**args)
+    output = run(cmd, cwd=args["path"], env={"OMP_NUM_THREADS": str(args["n_cpus"])})
 
-    if not os.path.exists(os.path.join(args["subjectDIR"], "fsaverage")):
-        shutil.copytree(os.path.join(os.environ["SUBJECTS_DIR"], "fsaverage"),
-                        os.path.join(args["subjectDIR"], "fsaverage"))
-    if not os.path.exists(os.path.join(args["subjectDIR"], "lh.EC_average")):
-        shutil.copytree(os.path.join(os.environ["SUBJECTS_DIR"], "lh.EC_average"),
-                        os.path.join(args["subjectDIR"], "lh.EC_average"))
-    if not os.path.exists(os.path.join(args["subjectDIR"], "rh.EC_average")):
-        shutil.copytree(os.path.join(os.environ["SUBJECTS_DIR"], "rh.EC_average"),
-                        os.path.join(args["subjectDIR"], "rh.EC_average"))
-
-    run(cmd, cwd=args["path"], env={"NSLOTS": str(args["n_cpus"]),
-                                    "OMP_NUM_THREADS": str(args["n_cpus"])})
+    if output.count("\n") == 4:
+        finish_year = output.split("\n")[3].split(" ")[12]
+        finish_month = output.split("\n")[3].split(" ")[8]
+        finish_month = monthDict.get(finish_month)
+        finish_day = output.split("\n")[3].split(" ")[9]
+        FS_finish = finish_year + '/' + finish_month + '/' + finish_day
+        FS = 'X'
+    else:
+        FS = ' '
+        FS_finish = ' '
 
 def run_post_freesurfer(**args):
     args.update(os.environ)
-    cmd = ' '
+    cmd = os.path.exists("{path/{subject}/MNINonLinear/fsaverage_LR32k/{subject}.32k_fs_LR.wb.spec")
 
     cmd = cmd.format(**args)
-    run(cmd, cwd=args["path"], env={"OMP_NUM_THREADS": str(args["n_cpus"])})
+    output = run(cmd, cwd=args["path"], env={"OMP_NUM_THREADS": str(args["n_cpus"])})
 
+    if output == True:
+        fd = subprocess.check_output("stat {path/{subject}/MNINonLinear/fsaverage_LR32k/{subject}.32k_fs_LR.wb.spec | grep 'Modify' ", shell=True)
+        finish_year = fd.split(" ")[1].split("-")[0]
+        finish_month = fd.split(" ")[1].split("-")[1]
+        finish_day = fd.split(" ")[1].split("-")[2]
+        post_FS_finish = finish_year + '/' + finish_month + '/' + finish_day
+        post_FS = 'X'
+    else:
+        post_FS_finish = ' '
+        post_FS = ' '
+
+# TODO: work on fMRI processing status
 def run_generic_fMRI_volume_processsing(**args):
     args.update(os.environ)
     cmd = ' '
@@ -187,5 +212,5 @@ if args.analysis_level == "participant":
                                                                              subject="ses-%s" % (ses_label),
                                                                              n_cpus=args.n_cpus))
                                                   ])
-        else:
+        #else:
 
