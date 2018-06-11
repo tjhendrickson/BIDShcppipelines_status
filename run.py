@@ -19,6 +19,8 @@ with open('HCP_processing_status.csv', 'w') as csvfile:
                   'PostFreeSurfer', 'Finish Date', 'fMRIVolume', 'Finish Date', 'fMRISurface', 'Finish Date',
                   'ICAFIX', 'Finish Date', 'PostFix', 'Finish Date', 'RestingStateStats', 'Finish Date',
                   'TaskfMRIAnalysis', 'Finish Date', 'DiffusionProcessing', 'Finish Date']
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    writer.writeheader()
 
 #month dictionary
 monthDict = {'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
@@ -57,6 +59,7 @@ def run_pre_freesurfer(**args):
     else:
         pre_FS = ' '
         pre_FS_finish = ' '
+    return pre_FS, pre_FS_finish
 
 
 def run_freesurfer(**args):
@@ -76,6 +79,7 @@ def run_freesurfer(**args):
     else:
         FS = ' '
         FS_finish = ' '
+    return FS, FS_finish
 
 
 def run_post_freesurfer(**args):
@@ -95,9 +99,8 @@ def run_post_freesurfer(**args):
     else:
         post_FS_finish = ' '
         post_FS = ' '
+    return post_FS, post_FS_finish
 
-
-# TODO: work on fMRI processing status
 def run_generic_fMRI_volume_processsing(**args):
     args.update(os.environ)
     cmd = os.path.exists("{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}.nii.gz")
@@ -114,6 +117,7 @@ def run_generic_fMRI_volume_processsing(**args):
     else:
         volumefMRI_finish = ' '
         volumefMRI = ' '
+    return volumefMRI, volumefMRI_finish
 
 def run_generic_fMRI_surface_processsing(**args):
     args.update(os.environ)
@@ -132,6 +136,7 @@ def run_generic_fMRI_surface_processsing(**args):
     else:
         surfacefMRI_finish = ' '
         surfacefMRI = ' '
+    return surfacefMRI, surfacefMRI_finish
 
 def run_ICAFIX_processing(**args):
     args.update(os.environ)
@@ -151,6 +156,7 @@ def run_ICAFIX_processing(**args):
     else:
         ICAFIX_finish = ' '
         ICAFIX = ' '
+    return ICAFIX, ICAFIX_finish
 
 def run_PostFix_processing(**args):
     args.update(os.environ)
@@ -166,11 +172,12 @@ def run_PostFix_processing(**args):
         finish_year = fd.split(" ")[1].split("-")[0]
         finish_month = fd.split(" ")[1].split("-")[1]
         finish_day = fd.split(" ")[1].split("-")[2]
-        ICAFIX_finish = finish_year + '/' + finish_month + '/' + finish_day
-        ICAFIX = 'X'
+        PostFix_finish = finish_year + '/' + finish_month + '/' + finish_day
+        PostFix = 'X'
     else:
-        ICAFIX_finish = ' '
-        ICAFIX = ' '
+        PostFix_finish = ' '
+        PostFix = ' '
+    return PostFix, PostFix_finish
 
 def run_RestingStateStats_processing(**args):
     args.update(os.environ)
@@ -190,6 +197,7 @@ def run_RestingStateStats_processing(**args):
     else:
         RSS_finish = ' '
         RSS = ' '
+    return RSS, RSS_finish
 
 
 def run_diffusion_processsing(**args):
@@ -210,6 +218,7 @@ def run_diffusion_processsing(**args):
     else:
         Diffusion_finish = ' '
         Diffusion = ' '
+    return Diffusion, Diffusion_finish
 
 parser = argparse.ArgumentParser(description='Example BIDS App entrypoint script.')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
@@ -287,6 +296,14 @@ if args.analysis_level == "participant":
                                                                              subject="ses-%s" % (ses_label),
                                                                              n_cpus=args.n_cpus))])
 
+                for stage, stage_func in struct_stages_dict.iteritems():
+                    if stage in args.stages:
+                        if stage == "PreFreeSurfer":
+                            pre_FS, pre_FS_finish = stage_func()
+                        elif stage == "FreeSurfer":
+                            FS, FS_finish = stage_func()
+                        else:
+                            post_FS, post_FS_finish = stage_func()
                 bolds = [f.filename for f in layout.get(subject=subject_label, session=ses_label,
                                                         type='bold',
                                                         extensions=["nii.gz", "nii"])]
@@ -329,13 +346,24 @@ if args.analysis_level == "participant":
                                                                                       n_cpus=args.n_cpus,
                                                                                       subject="ses-%s" % ses_label,
                                                                                       fmriname=fmriname))])
+                    # TODO: finish task fMRI portion
+                    #else:
+                        #task_stages_dict
 
                 for stage, stage_func in func_stages_dict.iteritems():
                     if stage in args.stages:
-                        stage_func()
+                        if stage == "fMRIVolume":
+                            volumefMRI, volumefMRI_finish = stage_func()
+                        else:
+                            surfacefMRI, surfacefMRI_finish = stage_func()
                 for stage, stage_func in rest_stages_dict.iteritems():
                     if stage in args.stages:
-                        stage_func()
+                        if stage == "ICAFIX":
+                            ICAFIX, ICAFIX_finish = stage_func()
+                        elif stage == "PostFix":
+                            PostFix, PostFix_finish = stage_func()
+                        else:
+                            RSS, RSS_finish = stage_func()
 
                 dwis = layout.get(subject=subject_label, type='dwi', extensions=["nii.gz", "nii"])
 
@@ -347,6 +375,30 @@ if args.analysis_level == "participant":
 
                 for stage, stage_func in dif_stages_dict.iteritems():
                     if stage in args.stages:
-                        stage_func()
+                        Diffusion, Diffusion_finish = stage_func()
+                writer.writerow({writer.fieldnames[0]: subject_label, writer.fieldnames[1]: ses_label,
+                                 writer.fieldnames[2]: pre_FS, writer.fieldnames[3]: pre_FS_finish,
+                                 writer.fieldnames[4]: FS, writer.fieldnames[5]: FS_finish,
+                                 writer.fieldnames[6]: post_FS, writer.fieldnames[7]: post_FS_finish,
+                                 writer.fieldnames[8]: volumefMRI, writer.fieldnames[9]: volumefMRI_finish,
+                                 writer.fieldnames[10]: surfacefMRI, writer.fieldnames[11]: surfacefMRI_finish,
+                                 writer.fieldnames[12]: ICAFIX, writer.fieldnames[13]: ICAFIX_finish,
+                                 writer.fieldnames[14]: PostFix, writer.fieldnames[15]: PostFix_finish,
+                                 writer.fieldnames[16]: RSS, writer.fieldnames[17]: RSS_finish,
+                                 writer.fieldnames[18]: TaskfMRI, writer.fieldnames[19]: TaskfMRI_finish,
+                                 writer.fieldnames[20]: Diffusion, writer.fieldnames[21]: Diffusion_finish})
         #else:
-
+            #ses_label = ' '
+            """
+            writer.writerow({writer.fieldnames[0]: subject_label, writer.fieldnames[1]: ses_label,
+                             writer.fieldnames[2]: pre_FS, writer.fieldnames[3]: pre_FS_finish,
+                             writer.fieldnames[4]: FS, writer.fieldnames[5]: FS_finish,
+                             writer.fieldnames[6]: post_FS, writer.fieldnames[7]: post_FS_finish,
+                             writer.fieldnames[8]: volumefMRI, writer.fieldnames[9]: volumefMRI_finish,
+                             writer.fieldnames[10]: surfacefMRI, writer.fieldnames[11]: surfacefMRI_finish,
+                             writer.fieldnames[12]: ICAFIX, writer.fieldnames[13]: ICAFIX_finish,
+                             writer.fieldnames[14]: PostFix, writer.fieldnames[15]: PostFix_finish,
+                             writer.fieldnames[16]: RSS, writer.fieldnames[17]: RSS_finish,
+                             writer.fieldnames[18]: TaskfMRI, writer.fieldnames[19]: TaskfMRI_finish,
+                             writer.fieldnames[20]: Diffusion, writer.fieldnames[21]: Diffusion_finish})
+            """
