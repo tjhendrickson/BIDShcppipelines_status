@@ -28,4 +28,8 @@ COPY run.py /run.py
 
 COPY version /version
 
+#make /bids_dir and /output_dir
+RUN mkdir /bids_dir && \
+    mkdir /output_dir
+
 ENTRYPOINT ["/run.py"]

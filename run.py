@@ -43,9 +43,12 @@ def run(command, env={}, cwd=None):
 
 def run_pre_freesurfer(**args):
     args.update(os.environ)
-    cmd = "cat {path}/{subject}/MNINonLinear/xfms/log.txt | grep 'END' "
+    cmd = "{path}/{subject}/MNINonLinear/xfms/log.txt"
     cmd = cmd.format(**args)
-    cmd = subprocess.check_output(cmd, shell=True)
+    if not os.path.exists(cmd):
+        pre_FS = 'No'
+        pre_FS_finish = 'NA'
+    cmd = subprocess.check_output("cat " + cmd + "| grep 'END' ", shell=True)
     output = cmd
 
     if len(output) > 0:
@@ -64,9 +67,12 @@ def run_pre_freesurfer(**args):
 def run_freesurfer(**args):
     args.update(os.environ)
     args["subjectDIR"] = os.path.join(args["path"], args["subject"], "T1w")
-    cmd = "cat {subjectDIR}/{subject}/scripts/recon-all.log | grep 'finished without error' "
+    cmd = "{subjectDIR}/{subject}/scripts/recon-all.log"
     cmd = cmd.format(**args)
-    cmd = subprocess.check_output(cmd, shell=True)
+    if not os.path.exists(cmd):
+        FS = 'No'
+        FS_finish = 'NA'
+    cmd = subprocess.check_output("cat " + cmd + "| grep 'finished without error' ", shell=True)
     output = cmd
     if output.count("\n") == 4:
         finish_year = output.split("\n")[3].split(" ")[12]
@@ -85,6 +91,9 @@ def run_post_freesurfer(**args):
     args.update(os.environ)
     cmd = "{path}/{subject}/MNINonLinear/fsaverage_LR32k/{subject}.32k_fs_LR.wb.spec"
     cmd_set = cmd.format(**args)
+    if not os.path.exists(cmd_set):
+        post_FS_finish = 'NA'
+        post_FS = 'No'
     output = os.path.exists(cmd_set)
     if output == True:
         fd = " {path}/{subject}/MNINonLinear/fsaverage_LR32k/{subject}.32k_fs_LR.wb.spec  "
@@ -104,6 +113,9 @@ def run_generic_fMRI_volume_processsing(**args):
     args.update(os.environ)
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}.nii.gz"
     cmd_set = cmd.format(**args)
+    if not os.path.exists(cmd_set):
+        volumefMRI_finish = 'NA'
+        volumefMRI = 'No'
     output = os.path.exists(cmd_set)
 
     if output == True:
@@ -124,6 +136,9 @@ def run_generic_fMRI_surface_processsing(**args):
     args.update(os.environ)
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas.dtseries.nii"
     cmd_set = cmd.format(**args)
+    if not os.path.exists(cmd_set):
+        surfacefMRI_finish = 'NA'
+        surfacefMRI = 'No'
     output = os.path.exists(cmd_set)
 
     if output == True:
@@ -144,6 +159,9 @@ def run_ICAFIX_processing(**args):
     args.update(os.environ)
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_hp{high_pass}.ica/fix4melview_{high_pass}_thr10.txt"
     cmd_set = cmd.format(**args)
+    if not os.path.exists(cmd_set):
+        ICAFIX_finish = 'NA'
+        ICAFIX = 'No'
     output = os.path.exists(cmd_set)
 
     if output == True:
@@ -164,6 +182,9 @@ def run_PostFix_processing(**args):
     args.update(os.environ)
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{subject}_{fmriname}_ICA_Classification_singlescreen.scene"
     cmd_set = cmd.format(**args)
+    if not os.path.exists(cmd_set):
+        PostFix_finish = 'NA'
+        PostFix = 'No'
     output = os.path.exists(cmd_set)
 
     if output == True:
@@ -184,6 +205,9 @@ def run_RestingStateStats_processing(**args):
     args.update(os.environ)
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas_stats.dscalar.nii"
     cmd_set = cmd.format(**args)
+    if not os.path.exists(cmd_set):
+        RSS_finish = 'NA'
+        RSS = 'No'
     output = os.path.exists(cmd_set)
 
     if output == True:
@@ -205,6 +229,9 @@ def run_diffusion_processsing(**args):
     args.update(os.environ)
     cmd = "{path}/{subject}/MNINonLinear/Results/Diffusion/eddy/eddy_unwarped_images.eddy_post_eddy_shell_alignment_parameters"
     cmd_set = cmd.format(**args)
+    if not os.path.exists(cmd_set):
+        Diffusion_finish = 'NA'
+        Diffusion = 'No'
     output = os.path.exists(cmd_set)
 
     if output == True:
@@ -283,15 +310,6 @@ if args.analysis_level == "participant":
             ses_dirs = glob(os.path.join(args.bids_dir, "sub-" + subject_label, "ses-*"))
             ses_to_analyze = [ses_dir.split("-")[-1] for ses_dir in ses_dirs]
             for ses_label in ses_to_analyze:
-                t1ws = [f.filename for f in layout.get(subject=subject_label, session=ses_label,
-                                                       type='T1w',
-                                                       extensions=["nii.gz", "nii"])]
-                t2ws = [f.filename for f in layout.get(subject=subject_label, session=ses_label,
-                                                       type='T2w',
-                                                       extensions=["nii.gz", "nii"])]
-                assert (len(t1ws) > 0), "No T1w files found for subject %s and session %s!" % (subject_label, ses_label)
-                assert (len(t2ws) > 0), "No T2w files found for subject %s and session %s!" % (subject_label, ses_label)
-
                 struct_stages_dict = OrderedDict([("PreFreeSurfer", partial(run_pre_freesurfer,
                                                                             path=args.output_dir + "/sub-%s" % (
                                                                                 subject_label),
@@ -376,8 +394,6 @@ if args.analysis_level == "participant":
                             PostFix, PostFix_finish = stage_func()
                         else:
                             RSS, RSS_finish = stage_func()
-
-                dwis = layout.get(subject=subject_label, type='dwi', extensions=["nii.gz", "nii"])
 
                 dif_stages_dict = OrderedDict([("DiffusionPreprocessing", partial(run_diffusion_processsing,
                                                                                   path=args.output_dir + "/sub-%s" % (
