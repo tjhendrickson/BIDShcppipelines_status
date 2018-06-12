@@ -1,223 +1,224 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
+from __future__ import print_function
 import argparse
 import os
-import subprocess
+import shutil
 import nibabel
-import numpy
 from glob import glob
+from shutil import rmtree
+import subprocess
+import nibabel as nip
 from bids.grabbids import BIDSLayout
+from subprocess import Popen, PIPE
 from functools import partial
 from collections import OrderedDict
+import pdb
 import csv
+
 
 __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 'version')).read()
-
-#create csv
-with open('/HCP_processing_status.csv', 'w') as csvfile:
-    fieldnames = ['subject_id', 'session_id', 'PreFreeSurfer', 'Finish Date', 'FreeSurfer', 'Finish Date',
-                  'PostFreeSurfer', 'Finish Date', 'fMRIVolume', 'Finish Date', 'fMRISurface', 'Finish Date',
-                  'ICAFIX', 'Finish Date', 'PostFix', 'Finish Date', 'RestingStateStats', 'Finish Date',
-                  'TaskfMRIAnalysis', 'Finish Date', 'DiffusionProcessing', 'Finish Date']
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-    writer.writeheader()
 
 #month dictionary
 monthDict = {'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
             'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'}
 
 
-def run(command, env={}):
+def run(command, env={}, cwd=None):
     merged_env = os.environ
     merged_env.update(env)
-    process = subprocess.Popen(command, stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT, shell=True,
-                               env=merged_env)
+    merged_env.pop("DEBUG", None)
+    print(command)
+    process = Popen(command, stdout=PIPE, stderr=subprocess.STDOUT,
+                    shell=True, env=merged_env, cwd=cwd)
     while True:
         line = process.stdout.readline()
-        line = str(line, 'utf-8')[:-1]
         print(line)
+        line = str(line)[:-1]
         if line == '' and process.poll() != None:
             break
     if process.returncode != 0:
-        raise Exception("Non zero return code: %d" % process.returncode)
+        raise Exception("Non zero return code: %d"%process.returncode)
 
 
 def run_pre_freesurfer(**args):
     args.update(os.environ)
-
-    cmd = subprocess.check_output("cat {path}/{subject}/MNINonLinear/xfms/log.txt | grep 'END' ", shell=True)
+    cmd = "cat {path}/{subject}/MNINonLinear/xfms/log.txt | grep 'END' "
     cmd = cmd.format(**args)
-    output = run(cmd, cwd=args["path"], env={"OMP_NUM_THREADS": str(args["n_cpus"])})
+    cmd = subprocess.check_output(cmd, shell=True)
+    output = cmd
+
     if len(output) > 0:
         finish_year = output.rstrip().split(" ")[7]
         finish_month = output.rstrip().split(" ")[3]
         finish_month = monthDict.get(finish_month)
         finish_day = output.rstrip().split(" ")[4]
         pre_FS_finish = finish_year + '/' + finish_month + '/' + finish_day
-        pre_FS = 'X'
+        pre_FS = 'Yes'
     else:
-        pre_FS = ' '
-        pre_FS_finish = ' '
+        pre_FS = 'No'
+        pre_FS_finish = 'NA'
     return pre_FS, pre_FS_finish
 
 
 def run_freesurfer(**args):
     args.update(os.environ)
     args["subjectDIR"] = os.path.join(args["path"], args["subject"], "T1w")
-    cmd = subprocess.check_output("cat {subjectDIR}/{subject}/scripts/recon-all.log | grep 'finished without error' ", shell=True)
+    cmd = "cat {subjectDIR}/{subject}/scripts/recon-all.log | grep 'finished without error' "
     cmd = cmd.format(**args)
-    output = run(cmd, cwd=args["path"], env={"OMP_NUM_THREADS": str(args["n_cpus"])})
-
+    cmd = subprocess.check_output(cmd, shell=True)
+    output = cmd
     if output.count("\n") == 4:
         finish_year = output.split("\n")[3].split(" ")[12]
         finish_month = output.split("\n")[3].split(" ")[8]
         finish_month = monthDict.get(finish_month)
         finish_day = output.split("\n")[3].split(" ")[9]
         FS_finish = finish_year + '/' + finish_month + '/' + finish_day
-        FS = 'X'
+        FS = 'Yes'
     else:
-        FS = ' '
-        FS_finish = ' '
+        FS = 'No'
+        FS_finish = 'NA'
     return FS, FS_finish
 
 
 def run_post_freesurfer(**args):
     args.update(os.environ)
-    cmd = os.path.exists("{path}/{subject}/MNINonLinear/fsaverage_LR32k/{subject}.32k_fs_LR.wb.spec")
-
-    cmd = cmd.format(**args)
-    output = run(cmd, cwd=args["path"], env={"OMP_NUM_THREADS": str(args["n_cpus"])})
-
+    cmd = "{path}/{subject}/MNINonLinear/fsaverage_LR32k/{subject}.32k_fs_LR.wb.spec"
+    cmd_set = cmd.format(**args)
+    output = os.path.exists(cmd_set)
     if output == True:
-        fd = subprocess.check_output("stat {path}/{subject}/MNINonLinear/fsaverage_LR32k/{subject}.32k_fs_LR.wb.spec | grep 'Modify' ", shell=True)
+        fd = " {path}/{subject}/MNINonLinear/fsaverage_LR32k/{subject}.32k_fs_LR.wb.spec  "
+        fd = cmd.format(**args)
+        fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
         finish_year = fd.split(" ")[1].split("-")[0]
         finish_month = fd.split(" ")[1].split("-")[1]
         finish_day = fd.split(" ")[1].split("-")[2]
         post_FS_finish = finish_year + '/' + finish_month + '/' + finish_day
-        post_FS = 'X'
+        post_FS = 'Yes'
     else:
-        post_FS_finish = ' '
-        post_FS = ' '
+        post_FS_finish = 'NA'
+        post_FS = 'No'
     return post_FS, post_FS_finish
 
 def run_generic_fMRI_volume_processsing(**args):
     args.update(os.environ)
-    cmd = os.path.exists("{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}.nii.gz")
-    cmd = cmd.format(**args)
-    output = run(cmd, cwd=args["path"], env={"OMP_NUM_THREADS": str(args["n_cpus"])})
+    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}.nii.gz"
+    cmd_set = cmd.format(**args)
+    output = os.path.exists(cmd_set)
 
     if output == True:
-        fd = subprocess.check_output("stat {path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}.nii.gz | grep 'Modify' ", shell=True)
+        fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}.nii.gz"
+        fd = cmd.format(**args)
+        fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
         finish_year = fd.split(" ")[1].split("-")[0]
         finish_month = fd.split(" ")[1].split("-")[1]
         finish_day = fd.split(" ")[1].split("-")[2]
         volumefMRI_finish = finish_year + '/' + finish_month + '/' + finish_day
-        volumefMRI = 'X'
+        volumefMRI = 'Yes'
     else:
-        volumefMRI_finish = ' '
-        volumefMRI = ' '
+        volumefMRI_finish = 'NA'
+        volumefMRI = 'No'
     return volumefMRI, volumefMRI_finish
 
 def run_generic_fMRI_surface_processsing(**args):
     args.update(os.environ)
-    cmd = os.path.exists("{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas.dtseries.nii")
-    cmd = cmd.format(**args)
-    output = run(cmd, cwd=args["path"], env={"OMP_NUM_THREADS": str(args["n_cpus"])})
+    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas.dtseries.nii"
+    cmd_set = cmd.format(**args)
+    output = os.path.exists(cmd_set)
 
     if output == True:
-        fd = subprocess.check_output(
-            "stat {path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas.dtseries.nii | grep 'Modify' ", shell=True)
+        fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas.dtseries.nii"
+        fd = cmd.format(**args)
+        fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
         finish_year = fd.split(" ")[1].split("-")[0]
         finish_month = fd.split(" ")[1].split("-")[1]
         finish_day = fd.split(" ")[1].split("-")[2]
         surfacefMRI_finish = finish_year + '/' + finish_month + '/' + finish_day
-        surfacefMRI = 'X'
+        surfacefMRI = 'Yes'
     else:
-        surfacefMRI_finish = ' '
-        surfacefMRI = ' '
+        surfacefMRI_finish = 'NA'
+        surfacefMRI = 'No'
     return surfacefMRI, surfacefMRI_finish
 
 def run_ICAFIX_processing(**args):
     args.update(os.environ)
-    cmd = os.path.exists("{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_hp{high_pass}.ica/fix4melview_{high_pass}_thr10.txt")
-    cmd = cmd.format(**args)
-    output = run(cmd, cwd=args["path"], env={"OMP_NUM_THREADS": str(args["n_cpus"])})
+    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_hp{high_pass}.ica/fix4melview_{high_pass}_thr10.txt"
+    cmd_set = cmd.format(**args)
+    output = os.path.exists(cmd_set)
 
     if output == True:
-        fd = subprocess.check_output(
-            "stat {path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_hp{high_pass}.ica/fix4melview_{high_pass}_thr10.txt | grep 'Modify' ",
-            shell=True)
+        fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_hp{high_pass}.ica/fix4melview_{high_pass}_thr10.txt"
+        fd = cmd.format(**args)
+        fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
         finish_year = fd.split(" ")[1].split("-")[0]
         finish_month = fd.split(" ")[1].split("-")[1]
         finish_day = fd.split(" ")[1].split("-")[2]
         ICAFIX_finish = finish_year + '/' + finish_month + '/' + finish_day
-        ICAFIX = 'X'
+        ICAFIX = 'Yes'
     else:
-        ICAFIX_finish = ' '
-        ICAFIX = ' '
+        ICAFIX_finish = 'NA'
+        ICAFIX = 'No'
     return ICAFIX, ICAFIX_finish
 
 def run_PostFix_processing(**args):
     args.update(os.environ)
-    cmd = os.path.exists(
-        "{path}/{subject}/MNINonLinear/Results/{fmriname}/{subject}_{fmriname}_ICA_Classification_singlescreen.scene")
-    cmd = cmd.format(**args)
-    output = run(cmd, cwd=args["path"], env={"OMP_NUM_THREADS": str(args["n_cpus"])})
+    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{subject}_{fmriname}_ICA_Classification_singlescreen.scene"
+    cmd_set = cmd.format(**args)
+    output = os.path.exists(cmd_set)
 
     if output == True:
-        fd = subprocess.check_output(
-            "stat {path}/{subject}/MNINonLinear/Results/{fmriname}/{subject}_{fmriname}_ICA_Classification_singlescreen.scene | grep 'Modify' ",
-            shell=True)
+        fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{subject}_{fmriname}_ICA_Classification_singlescreen.scene"
+        fd = cmd.format(**args)
+        fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
         finish_year = fd.split(" ")[1].split("-")[0]
         finish_month = fd.split(" ")[1].split("-")[1]
         finish_day = fd.split(" ")[1].split("-")[2]
         PostFix_finish = finish_year + '/' + finish_month + '/' + finish_day
-        PostFix = 'X'
+        PostFix = 'Yes'
     else:
-        PostFix_finish = ' '
-        PostFix = ' '
+        PostFix_finish = 'NA'
+        PostFix = 'No'
     return PostFix, PostFix_finish
 
 def run_RestingStateStats_processing(**args):
     args.update(os.environ)
-    cmd = os.path.exists("{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas_stats.dscalar.nii")
-    cmd = cmd.format(**args)
-    output = run(cmd, cwd=args["path"], env={"OMP_NUM_THREADS": str(args["n_cpus"])})
+    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas_stats.dscalar.nii"
+    cmd_set = cmd.format(**args)
+    output = os.path.exists(cmd_set)
 
     if output == True:
-        fd = subprocess.check_output(
-            "stat {path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas_stats.dscalar.nii | grep 'Modify' ",
-            shell=True)
+        fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas_stats.dscalar.nii"
+        fd = cmd.format(**args)
+        fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
         finish_year = fd.split(" ")[1].split("-")[0]
         finish_month = fd.split(" ")[1].split("-")[1]
         finish_day = fd.split(" ")[1].split("-")[2]
         RSS_finish = finish_year + '/' + finish_month + '/' + finish_day
-        RSS = 'X'
+        RSS = 'Yes'
     else:
-        RSS_finish = ' '
-        RSS = ' '
+        RSS_finish = 'NA'
+        RSS = 'No'
     return RSS, RSS_finish
 
 
 def run_diffusion_processsing(**args):
     args.update(os.environ)
-    cmd = os.path.exists("{path}/{subject}/MNINonLinear/Results/Diffusion/eddy/eddy_unwarped_images.eddy_post_eddy_shell_alignment_parameters")
-    cmd = cmd.format(**args)
-    output = run(cmd, cwd=args["path"], env={"OMP_NUM_THREADS": str(args["n_cpus"])})
+    cmd = "{path}/{subject}/MNINonLinear/Results/Diffusion/eddy/eddy_unwarped_images.eddy_post_eddy_shell_alignment_parameters"
+    cmd_set = cmd.format(**args)
+    output = os.path.exists(cmd_set)
 
     if output == True:
-        fd = subprocess.check_output(
-            "stat {path}/{subject}/MNINonLinear/Results/Diffusion/eddy/eddy_unwarped_images.eddy_post_eddy_shell_alignment_parameters | grep 'Modify' ",
-            shell=True)
+        fd = "{path}/{subject}/MNINonLinear/Results/Diffusion/eddy/eddy_unwarped_images.eddy_post_eddy_shell_alignment_parameters"
+        fd = cmd.format(**args)
+        fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
         finish_year = fd.split(" ")[1].split("-")[0]
         finish_month = fd.split(" ")[1].split("-")[1]
         finish_day = fd.split(" ")[1].split("-")[2]
         Diffusion_finish = finish_year + '/' + finish_month + '/' + finish_day
-        Diffusion = 'X'
+        Diffusion = 'Yes'
     else:
-        Diffusion_finish = ' '
-        Diffusion = ' '
+        Diffusion_finish = 'NA'
+        Diffusion = 'No'
     return Diffusion, Diffusion_finish
 
 parser = argparse.ArgumentParser(description='Example BIDS App entrypoint script.')
@@ -237,6 +238,8 @@ parser.add_argument('--participant_label', help='The label(s) of the participant
                    'provided all subjects should be analyzed. Multiple '
                    'participants can be specified with a space separated list.',
                    nargs="+")
+parser.add_argument('--n_cpus', help='Number of CPUs/cores available to use.',
+                   default=1, type=int)
 parser.add_argument('--stages', help='Which stages to run. Space separated list.',
                    nargs="+", choices=['PreFreeSurfer', 'FreeSurfer',
                                        'PostFreeSurfer', 'fMRIVolume',
@@ -262,6 +265,15 @@ if args.participant_label:
 else:
     subject_dirs = glob(os.path.join(args.output_dir, "sub-*"))
     subjects_to_analyze = [subject_dir.split("-")[-1] for subject_dir in subject_dirs]
+
+
+#create csv
+csvfile = open(args.output_dir + '/HCP_processing_status.csv', 'w')
+fieldnames = ['subject_id', 'session_id', 'PreFreeSurfer', 'Finish Date', 'FreeSurfer', 'Finish Date',
+              'PostFreeSurfer', 'Finish Date', 'fMRIVolume', 'Finish Date', 'fMRISurface', 'Finish Date',
+              'ICAFIX', 'Finish Date', 'PostFix', 'Finish Date', 'RestingStateStats', 'Finish Date', 'DiffusionProcessing', 'Finish Date']
+writer = csv.writer(csvfile, delimiter=',')
+writer.writerow(fieldnames)
 
 # running participant level
 if args.analysis_level == "participant":
@@ -376,17 +388,24 @@ if args.analysis_level == "participant":
                 for stage, stage_func in dif_stages_dict.iteritems():
                     if stage in args.stages:
                         Diffusion, Diffusion_finish = stage_func()
-                writer.writerow({writer.fieldnames[0]: subject_label, writer.fieldnames[1]: ses_label,
-                                 writer.fieldnames[2]: pre_FS, writer.fieldnames[3]: pre_FS_finish,
-                                 writer.fieldnames[4]: FS, writer.fieldnames[5]: FS_finish,
-                                 writer.fieldnames[6]: post_FS, writer.fieldnames[7]: post_FS_finish,
-                                 writer.fieldnames[8]: volumefMRI, writer.fieldnames[9]: volumefMRI_finish,
-                                 writer.fieldnames[10]: surfacefMRI, writer.fieldnames[11]: surfacefMRI_finish,
-                                 writer.fieldnames[12]: ICAFIX, writer.fieldnames[13]: ICAFIX_finish,
-                                 writer.fieldnames[14]: PostFix, writer.fieldnames[15]: PostFix_finish,
-                                 writer.fieldnames[16]: RSS, writer.fieldnames[17]: RSS_finish,
-                                 #writer.fieldnames[18]: TaskfMRI, writer.fieldnames[19]: TaskfMRI_finish,
-                                 writer.fieldnames[20]: Diffusion, writer.fieldnames[21]: Diffusion_finish})
+
+                row = [subject_label, ses_label, pre_FS, pre_FS_finish, FS, FS_finish, post_FS, post_FS_finish,
+                       volumefMRI, volumefMRI_finish, surfacefMRI, surfacefMRI_finish, ICAFIX, ICAFIX_finish,
+                       PostFix, PostFix_finish, RSS, RSS, Diffusion, Diffusion_finish]
+                writer.writerow(row)
+
+                #writer.writerow({writer.fieldnames[0]: subject_label, writer.fieldnames[1]: ses_label,
+                #                 writer.fieldnames[2]: pre_FS, writer.fieldnames[3]: pre_FS_finish,
+                #                 writer.fieldnames[4]: FS, writer.fieldnames[5]: FS_finish,
+                #                 writer.fieldnames[6]: post_FS, writer.fieldnames[7]: post_FS_finish,
+                #                 writer.fieldnames[8]: volumefMRI, writer.fieldnames[9]: volumefMRI_finish,
+                #                 writer.fieldnames[10]: surfacefMRI, writer.fieldnames[11]: surfacefMRI_finish,
+                #                 writer.fieldnames[12]: ICAFIX, writer.fieldnames[13]: ICAFIX_finish,
+                #                 writer.fieldnames[14]: PostFix, writer.fieldnames[15]: PostFix_finish,
+                #                 writer.fieldnames[16]: RSS, writer.fieldnames[17]: RSS_finish,
+                #                 #writer.fieldnames[18]: TaskfMRI, writer.fieldnames[19]: TaskfMRI_finish,
+                #                 writer.fieldnames[20]: Diffusion, writer.fieldnames[21]: Diffusion_finish})
+
         #else:
             #ses_label = ' '
             """
@@ -402,3 +421,4 @@ if args.analysis_level == "participant":
                              writer.fieldnames[18]: TaskfMRI, writer.fieldnames[19]: TaskfMRI_finish,
                              writer.fieldnames[20]: Diffusion, writer.fieldnames[21]: Diffusion_finish})
             """
+csvfile.close()
