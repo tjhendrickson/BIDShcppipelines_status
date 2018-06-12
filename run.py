@@ -14,7 +14,7 @@ __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 'version')).read()
 
 #create csv
-with open('HCP_processing_status.csv', 'w') as csvfile:
+with open('/HCP_processing_status.csv', 'w') as csvfile:
     fieldnames = ['subject_id', 'session_id', 'PreFreeSurfer', 'Finish Date', 'FreeSurfer', 'Finish Date',
                   'PostFreeSurfer', 'Finish Date', 'fMRIVolume', 'Finish Date', 'fMRISurface', 'Finish Date',
                   'ICAFIX', 'Finish Date', 'PostFix', 'Finish Date', 'RestingStateStats', 'Finish Date',
@@ -385,7 +385,7 @@ if args.analysis_level == "participant":
                                  writer.fieldnames[12]: ICAFIX, writer.fieldnames[13]: ICAFIX_finish,
                                  writer.fieldnames[14]: PostFix, writer.fieldnames[15]: PostFix_finish,
                                  writer.fieldnames[16]: RSS, writer.fieldnames[17]: RSS_finish,
-                                 writer.fieldnames[18]: TaskfMRI, writer.fieldnames[19]: TaskfMRI_finish,
+                                 #writer.fieldnames[18]: TaskfMRI, writer.fieldnames[19]: TaskfMRI_finish,
                                  writer.fieldnames[20]: Diffusion, writer.fieldnames[21]: Diffusion_finish})
         #else:
             #ses_label = ' '
