@@ -53,10 +53,9 @@ def run_pre_freesurfer(**args):
         output = cmd
 
         if len(output) > 0:
-            finish_year = output.rstrip().split(" ")[-1]
-            finish_month = output.rstrip().split(" ")[3]
-            finish_month = monthDict.get(finish_month)
-            finish_day = output.rstrip().split(" ")[4]
+            finish_year = output.split(" ")[1].split("-")[0]
+            finish_month = output.split(" ")[1].split("-")[1]
+            finish_day = output.split(" ")[1].split("-")[2]
             pre_FS_finish = finish_year + '/' + finish_month + '/' + finish_day
             pre_FS = 'Yes'
         else:
@@ -77,10 +76,9 @@ def run_freesurfer(**args):
         cmd = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
         output = cmd
         if output.count("\n") == 4:
-            finish_year = output.split("\n")[3].split(" ")[12]
-            finish_month = output.split("\n")[3].split(" ")[8]
-            finish_month = monthDict.get(finish_month)
-            finish_day = output.split("\n")[3].split(" ")[9]
+            finish_year = output.split(" ")[1].split("-")[0]
+            finish_month = output.split(" ")[1].split("-")[1]
+            finish_day = output.split(" ")[1].split("-")[2]
             FS_finish = finish_year + '/' + finish_month + '/' + finish_day
             FS = 'Yes'
         else:
