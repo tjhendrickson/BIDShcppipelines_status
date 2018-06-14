@@ -56,7 +56,7 @@ Or to run processing status for one participant and one stage:
 ```
 sudo docker run -ti --rm -v /home/timothy/sandbox_DO_NOT_DELETE/BIDS/142_CIFASD_4/BIDS_output:/bids_dir 
 -v /home/timothy/sandbox_DO_NOT_DELETE/BIDS/142_CIFASD_4/HCP_output:/output_dir tjhendrickson/bidshcppipeline_status:v0.1 
-/bids_dir /output_dir participant --participant_label 01 --stage PreFreeSurfer
+/bids_dir /output_dir participant --participant_label 01 --stages PreFreeSurfer
 ```
 
 
