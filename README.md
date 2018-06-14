@@ -45,12 +45,18 @@ optional arguments:
   -v, --version         show program's version number and exit
 ```
 
-To run processing status across all participants and all stages (i.e. PreFreeSurfer,FreeSurfer,PostFreeSurfer,fMRIVolume,
-fMRISurface,ICAFIX,PostFix,RestingStateStats,DiffusionPreprocessing):
+To run processing status across all participants and all stages (i.e. PreFreeSurfer, FreeSurfer, PostFreeSurfer, 
+fMRIVolume, fMRISurface, ICAFIX, PostFix, RestingStateStats, and DiffusionPreprocessing):
 ```
 sudo docker run -ti --rm -v /home/timothy/sandbox_DO_NOT_DELETE/BIDS/142_CIFASD_4/BIDS_output:/bids_dir 
 -v /home/timothy/sandbox_DO_NOT_DELETE/BIDS/142_CIFASD_4/HCP_output:/output_dir tjhendrickson/bidshcppipeline_status:v0.1 
 /bids_dir /output_dir participant
+```
+Or to run processing status for one participant and one stage:
+```
+sudo docker run -ti --rm -v /home/timothy/sandbox_DO_NOT_DELETE/BIDS/142_CIFASD_4/BIDS_output:/bids_dir 
+-v /home/timothy/sandbox_DO_NOT_DELETE/BIDS/142_CIFASD_4/HCP_output:/output_dir tjhendrickson/bidshcppipeline_status:v0.1 
+/bids_dir /output_dir participant --participant_label 01 --stage PreFreeSurfer
 ```
 
 
