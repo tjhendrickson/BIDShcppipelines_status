@@ -48,7 +48,7 @@ def run_pre_freesurfer(**args):
     if not os.path.exists(cmd):
         pre_FS = 'No'
         pre_FS_finish = 'NA'
-    cmd = subprocess.check_output("cat " + cmd + "| grep 'END' ", shell=True)
+    cmd = subprocess.check_output("cat " + cmd + "| grep 'END' | tail -n 1", shell=True)
     output = cmd
 
     if len(output) > 0:
@@ -72,7 +72,7 @@ def run_freesurfer(**args):
     if not os.path.exists(cmd):
         FS = 'No'
         FS_finish = 'NA'
-    cmd = subprocess.check_output("cat " + cmd + "| grep 'finished without error' ", shell=True)
+    cmd = subprocess.check_output("cat " + cmd + "| grep 'finished without error' | tail -n 1", shell=True)
     output = cmd
     if output.count("\n") == 4:
         finish_year = output.split("\n")[3].split(" ")[12]
