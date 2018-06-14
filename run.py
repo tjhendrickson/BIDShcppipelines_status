@@ -255,13 +255,11 @@ def run_diffusion_processsing(**args):
             Diffusion = 'No'
     return Diffusion, Diffusion_finish
 
-parser = argparse.ArgumentParser(description='Example BIDS App entrypoint script.')
+parser = argparse.ArgumentParser(description='HCP Pipeline status BIDS App (structural, functional MRI, diffusion, resting state).')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
                     'formatted according to the BIDS standard.')
-parser.add_argument('output_dir', help='The directory where the output files '
-                    'should be stored. If you are running group level analysis '
-                    'this folder should be prepopulated with the results of the'
-                    'participant level analysis.')
+parser.add_argument('output_dir', help='The directory where the HCP output files are stored. '
+                    'The processing status csv file will be outptted here')
 parser.add_argument('analysis_level', help='Level of the analysis that will be performed. '
                     'Multiple participant level analyses can be run independently '
                     '(in parallel) using the same output_dir.',
@@ -272,8 +270,6 @@ parser.add_argument('--participant_label', help='The label(s) of the participant
                    'provided all subjects should be analyzed. Multiple '
                    'participants can be specified with a space separated list.',
                    nargs="+")
-parser.add_argument('--n_cpus', help='Number of CPUs/cores available to use.',
-                   default=1, type=int)
 parser.add_argument('--stages', help='Which stages to run. Space separated list.',
                    nargs="+", choices=['PreFreeSurfer', 'FreeSurfer',
                                        'PostFreeSurfer', 'fMRIVolume',
@@ -320,18 +316,15 @@ if args.analysis_level == "participant":
                 struct_stages_dict = OrderedDict([("PreFreeSurfer", partial(run_pre_freesurfer,
                                                                             path=args.output_dir + "/sub-%s" % (
                                                                                 subject_label),
-                                                                            subject="ses-%s" % (ses_label),
-                                                                            n_cpus=args.n_cpus)),
+                                                                            subject="ses-%s" % (ses_label))),
                                                   ("FreeSurfer", partial(run_freesurfer,
                                                                          path=args.output_dir + "/sub-%s" % (
                                                                              subject_label),
-                                                                         subject="ses-%s" % (ses_label),
-                                                                         n_cpus=args.n_cpus)),
+                                                                         subject="ses-%s" % (ses_label))),
                                                   ("PostFreeSurfer", partial(run_post_freesurfer,
                                                                              path=args.output_dir + "/sub-%s" % (
                                                                                  subject_label),
-                                                                             subject="ses-%s" % (ses_label),
-                                                                             n_cpus=args.n_cpus))])
+                                                                             subject="ses-%s" % (ses_label)))])
 
                 for stage, stage_func in struct_stages_dict.iteritems():
                     if stage in args.stages:
@@ -355,19 +348,16 @@ if args.analysis_level == "participant":
                                                                            path=args.output_dir + "/sub-%s" % (
                                                                                subject_label),
                                                                            subject="ses-%s" % (ses_label),
-                                                                           fmriname=fmriname,
-                                                                           n_cpus=args.n_cpus)),
+                                                                           fmriname=fmriname)),
                                                     ("fMRISurface", partial(run_generic_fMRI_surface_processsing,
                                                                             path=args.output_dir + "/sub-%s" % (
                                                                                 subject_label),
                                                                             subject="ses-%s" % (ses_label),
-                                                                            fmriname=fmriname,
-                                                                            n_cpus=args.n_cpus))])
+                                                                            fmriname=fmriname))])
                     if 'rest' in fmriname:
                         rest_stages_dict = OrderedDict([("ICAFIX", partial(run_ICAFIX_processing,
                                                                            path=args.output_dir + "/sub-%s" % (
                                                                                subject_label),
-                                                                           n_cpus=args.n_cpus,
                                                                            subject="ses-%s" % (ses_label),
                                                                            fmriname=fmriname,
                                                                            high_pass=highpass,
@@ -375,12 +365,10 @@ if args.analysis_level == "participant":
                                                         ("PostFix", partial(run_PostFix_processing,
                                                                             path=args.output_dir + "/sub-%s" % (
                                                                                 subject_label),
-                                                                            n_cpus=args.n_cpus,
                                                                             subject="ses-%s" % (ses_label),
                                                                             fmriname=fmriname)),
                                                         ("RestingStateStats", partial(run_RestingStateStats_processing,
                                                                                       path=args.output_dir + "/sub-%s" % subject_label,
-                                                                                      n_cpus=args.n_cpus,
                                                                                       subject="ses-%s" % ses_label,
                                                                                       fmriname=fmriname))])
                     # TODO: finish task fMRI portion
@@ -405,7 +393,6 @@ if args.analysis_level == "participant":
                 dif_stages_dict = OrderedDict([("DiffusionPreprocessing", partial(run_diffusion_processsing,
                                                                                   path=args.output_dir + "/sub-%s" % (
                                                                                       subject_label),
-                                                                                  n_cpus=args.n_cpus,
                                                                                   subject="ses-%s" % (ses_label)))])
 
                 for stage, stage_func in dif_stages_dict.iteritems():
