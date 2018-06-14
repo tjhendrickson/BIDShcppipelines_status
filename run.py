@@ -48,19 +48,20 @@ def run_pre_freesurfer(**args):
     if not os.path.exists(cmd):
         pre_FS = 'No'
         pre_FS_finish = 'NA'
-    cmd = subprocess.check_output("cat " + cmd + "| grep 'END' | tail -n 1", shell=True)
-    output = cmd
-
-    if len(output) > 0:
-        finish_year = output.rstrip().split(" ")[7]
-        finish_month = output.rstrip().split(" ")[3]
-        finish_month = monthDict.get(finish_month)
-        finish_day = output.rstrip().split(" ")[4]
-        pre_FS_finish = finish_year + '/' + finish_month + '/' + finish_day
-        pre_FS = 'Yes'
     else:
-        pre_FS = 'No'
-        pre_FS_finish = 'NA'
+        cmd = subprocess.check_output("cat " + cmd + "| grep 'END' | tail -n 1", shell=True)
+        output = cmd
+
+        if len(output) > 0:
+            finish_year = output.rstrip().split(" ")[7]
+            finish_month = output.rstrip().split(" ")[3]
+            finish_month = monthDict.get(finish_month)
+            finish_day = output.rstrip().split(" ")[4]
+            pre_FS_finish = finish_year + '/' + finish_month + '/' + finish_day
+            pre_FS = 'Yes'
+        else:
+            pre_FS = 'No'
+            pre_FS_finish = 'NA'
     return pre_FS, pre_FS_finish
 
 
@@ -72,18 +73,19 @@ def run_freesurfer(**args):
     if not os.path.exists(cmd):
         FS = 'No'
         FS_finish = 'NA'
-    cmd = subprocess.check_output("cat " + cmd + "| grep 'finished without error' | tail -n 1", shell=True)
-    output = cmd
-    if output.count("\n") == 4:
-        finish_year = output.split("\n")[3].split(" ")[12]
-        finish_month = output.split("\n")[3].split(" ")[8]
-        finish_month = monthDict.get(finish_month)
-        finish_day = output.split("\n")[3].split(" ")[9]
-        FS_finish = finish_year + '/' + finish_month + '/' + finish_day
-        FS = 'Yes'
     else:
-        FS = 'No'
-        FS_finish = 'NA'
+        cmd = subprocess.check_output("cat " + cmd + "| grep 'finished without error' | tail -n 1", shell=True)
+        output = cmd
+        if output.count("\n") == 4:
+            finish_year = output.split("\n")[3].split(" ")[12]
+            finish_month = output.split("\n")[3].split(" ")[8]
+            finish_month = monthDict.get(finish_month)
+            finish_day = output.split("\n")[3].split(" ")[9]
+            FS_finish = finish_year + '/' + finish_month + '/' + finish_day
+            FS = 'Yes'
+        else:
+            FS = 'No'
+            FS_finish = 'NA'
     return FS, FS_finish
 
 
@@ -94,19 +96,20 @@ def run_post_freesurfer(**args):
     if not os.path.exists(cmd_set):
         post_FS_finish = 'NA'
         post_FS = 'No'
-    output = os.path.exists(cmd_set)
-    if output == True:
-        fd = " {path}/{subject}/MNINonLinear/fsaverage_LR32k/{subject}.32k_fs_LR.wb.spec  "
-        fd = cmd.format(**args)
-        fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
-        finish_year = fd.split(" ")[1].split("-")[0]
-        finish_month = fd.split(" ")[1].split("-")[1]
-        finish_day = fd.split(" ")[1].split("-")[2]
-        post_FS_finish = finish_year + '/' + finish_month + '/' + finish_day
-        post_FS = 'Yes'
     else:
-        post_FS_finish = 'NA'
-        post_FS = 'No'
+        output = os.path.exists(cmd_set)
+        if output == True:
+            fd = " {path}/{subject}/MNINonLinear/fsaverage_LR32k/{subject}.32k_fs_LR.wb.spec  "
+            fd = cmd.format(**args)
+            fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
+            finish_year = fd.split(" ")[1].split("-")[0]
+            finish_month = fd.split(" ")[1].split("-")[1]
+            finish_day = fd.split(" ")[1].split("-")[2]
+            post_FS_finish = finish_year + '/' + finish_month + '/' + finish_day
+            post_FS = 'Yes'
+        else:
+            post_FS_finish = 'NA'
+            post_FS = 'No'
     return post_FS, post_FS_finish
 
 def run_generic_fMRI_volume_processsing(**args):
@@ -116,20 +119,21 @@ def run_generic_fMRI_volume_processsing(**args):
     if not os.path.exists(cmd_set):
         volumefMRI_finish = 'NA'
         volumefMRI = 'No'
-    output = os.path.exists(cmd_set)
-
-    if output == True:
-        fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}.nii.gz"
-        fd = cmd.format(**args)
-        fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
-        finish_year = fd.split(" ")[1].split("-")[0]
-        finish_month = fd.split(" ")[1].split("-")[1]
-        finish_day = fd.split(" ")[1].split("-")[2]
-        volumefMRI_finish = finish_year + '/' + finish_month + '/' + finish_day
-        volumefMRI = 'Yes'
     else:
-        volumefMRI_finish = 'NA'
-        volumefMRI = 'No'
+        output = os.path.exists(cmd_set)
+
+        if output == True:
+            fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}.nii.gz"
+            fd = cmd.format(**args)
+            fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
+            finish_year = fd.split(" ")[1].split("-")[0]
+            finish_month = fd.split(" ")[1].split("-")[1]
+            finish_day = fd.split(" ")[1].split("-")[2]
+            volumefMRI_finish = finish_year + '/' + finish_month + '/' + finish_day
+            volumefMRI = 'Yes'
+        else:
+            volumefMRI_finish = 'NA'
+            volumefMRI = 'No'
     return volumefMRI, volumefMRI_finish
 
 def run_generic_fMRI_surface_processsing(**args):
@@ -139,20 +143,21 @@ def run_generic_fMRI_surface_processsing(**args):
     if not os.path.exists(cmd_set):
         surfacefMRI_finish = 'NA'
         surfacefMRI = 'No'
-    output = os.path.exists(cmd_set)
-
-    if output == True:
-        fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas.dtseries.nii"
-        fd = cmd.format(**args)
-        fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
-        finish_year = fd.split(" ")[1].split("-")[0]
-        finish_month = fd.split(" ")[1].split("-")[1]
-        finish_day = fd.split(" ")[1].split("-")[2]
-        surfacefMRI_finish = finish_year + '/' + finish_month + '/' + finish_day
-        surfacefMRI = 'Yes'
     else:
-        surfacefMRI_finish = 'NA'
-        surfacefMRI = 'No'
+        output = os.path.exists(cmd_set)
+
+        if output == True:
+            fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas.dtseries.nii"
+            fd = cmd.format(**args)
+            fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
+            finish_year = fd.split(" ")[1].split("-")[0]
+            finish_month = fd.split(" ")[1].split("-")[1]
+            finish_day = fd.split(" ")[1].split("-")[2]
+            surfacefMRI_finish = finish_year + '/' + finish_month + '/' + finish_day
+            surfacefMRI = 'Yes'
+        else:
+            surfacefMRI_finish = 'NA'
+            surfacefMRI = 'No'
     return surfacefMRI, surfacefMRI_finish
 
 def run_ICAFIX_processing(**args):
@@ -162,20 +167,21 @@ def run_ICAFIX_processing(**args):
     if not os.path.exists(cmd_set):
         ICAFIX_finish = 'NA'
         ICAFIX = 'No'
-    output = os.path.exists(cmd_set)
-
-    if output == True:
-        fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_hp{high_pass}.ica/fix4melview_{high_pass}_thr10.txt"
-        fd = cmd.format(**args)
-        fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
-        finish_year = fd.split(" ")[1].split("-")[0]
-        finish_month = fd.split(" ")[1].split("-")[1]
-        finish_day = fd.split(" ")[1].split("-")[2]
-        ICAFIX_finish = finish_year + '/' + finish_month + '/' + finish_day
-        ICAFIX = 'Yes'
     else:
-        ICAFIX_finish = 'NA'
-        ICAFIX = 'No'
+        output = os.path.exists(cmd_set)
+
+        if output == True:
+            fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_hp{high_pass}.ica/fix4melview_{high_pass}_thr10.txt"
+            fd = cmd.format(**args)
+            fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
+            finish_year = fd.split(" ")[1].split("-")[0]
+            finish_month = fd.split(" ")[1].split("-")[1]
+            finish_day = fd.split(" ")[1].split("-")[2]
+            ICAFIX_finish = finish_year + '/' + finish_month + '/' + finish_day
+            ICAFIX = 'Yes'
+        else:
+            ICAFIX_finish = 'NA'
+            ICAFIX = 'No'
     return ICAFIX, ICAFIX_finish
 
 def run_PostFix_processing(**args):
@@ -185,20 +191,21 @@ def run_PostFix_processing(**args):
     if not os.path.exists(cmd_set):
         PostFix_finish = 'NA'
         PostFix = 'No'
-    output = os.path.exists(cmd_set)
-
-    if output == True:
-        fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{subject}_{fmriname}_ICA_Classification_singlescreen.scene"
-        fd = cmd.format(**args)
-        fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
-        finish_year = fd.split(" ")[1].split("-")[0]
-        finish_month = fd.split(" ")[1].split("-")[1]
-        finish_day = fd.split(" ")[1].split("-")[2]
-        PostFix_finish = finish_year + '/' + finish_month + '/' + finish_day
-        PostFix = 'Yes'
     else:
-        PostFix_finish = 'NA'
-        PostFix = 'No'
+        output = os.path.exists(cmd_set)
+
+        if output == True:
+            fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{subject}_{fmriname}_ICA_Classification_singlescreen.scene"
+            fd = cmd.format(**args)
+            fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
+            finish_year = fd.split(" ")[1].split("-")[0]
+            finish_month = fd.split(" ")[1].split("-")[1]
+            finish_day = fd.split(" ")[1].split("-")[2]
+            PostFix_finish = finish_year + '/' + finish_month + '/' + finish_day
+            PostFix = 'Yes'
+        else:
+            PostFix_finish = 'NA'
+            PostFix = 'No'
     return PostFix, PostFix_finish
 
 def run_RestingStateStats_processing(**args):
@@ -208,20 +215,21 @@ def run_RestingStateStats_processing(**args):
     if not os.path.exists(cmd_set):
         RSS_finish = 'NA'
         RSS = 'No'
-    output = os.path.exists(cmd_set)
-
-    if output == True:
-        fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas_stats.dscalar.nii"
-        fd = cmd.format(**args)
-        fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
-        finish_year = fd.split(" ")[1].split("-")[0]
-        finish_month = fd.split(" ")[1].split("-")[1]
-        finish_day = fd.split(" ")[1].split("-")[2]
-        RSS_finish = finish_year + '/' + finish_month + '/' + finish_day
-        RSS = 'Yes'
     else:
-        RSS_finish = 'NA'
-        RSS = 'No'
+        output = os.path.exists(cmd_set)
+
+        if output == True:
+            fd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas_stats.dscalar.nii"
+            fd = cmd.format(**args)
+            fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
+            finish_year = fd.split(" ")[1].split("-")[0]
+            finish_month = fd.split(" ")[1].split("-")[1]
+            finish_day = fd.split(" ")[1].split("-")[2]
+            RSS_finish = finish_year + '/' + finish_month + '/' + finish_day
+            RSS = 'Yes'
+        else:
+            RSS_finish = 'NA'
+            RSS = 'No'
     return RSS, RSS_finish
 
 
@@ -232,20 +240,21 @@ def run_diffusion_processsing(**args):
     if not os.path.exists(cmd_set):
         Diffusion_finish = 'NA'
         Diffusion = 'No'
-    output = os.path.exists(cmd_set)
-
-    if output == True:
-        fd = "{path}/{subject}/MNINonLinear/Results/Diffusion/eddy/eddy_unwarped_images.eddy_post_eddy_shell_alignment_parameters"
-        fd = cmd.format(**args)
-        fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
-        finish_year = fd.split(" ")[1].split("-")[0]
-        finish_month = fd.split(" ")[1].split("-")[1]
-        finish_day = fd.split(" ")[1].split("-")[2]
-        Diffusion_finish = finish_year + '/' + finish_month + '/' + finish_day
-        Diffusion = 'Yes'
     else:
-        Diffusion_finish = 'NA'
-        Diffusion = 'No'
+        output = os.path.exists(cmd_set)
+
+        if output == True:
+            fd = "{path}/{subject}/MNINonLinear/Results/Diffusion/eddy/eddy_unwarped_images.eddy_post_eddy_shell_alignment_parameters"
+            fd = cmd.format(**args)
+            fd = subprocess.check_output("stat " + fd + "| grep 'Modify' ", shell=True)
+            finish_year = fd.split(" ")[1].split("-")[0]
+            finish_month = fd.split(" ")[1].split("-")[1]
+            finish_day = fd.split(" ")[1].split("-")[2]
+            Diffusion_finish = finish_year + '/' + finish_month + '/' + finish_day
+            Diffusion = 'Yes'
+        else:
+            Diffusion_finish = 'NA'
+            Diffusion = 'No'
     return Diffusion, Diffusion_finish
 
 parser = argparse.ArgumentParser(description='Example BIDS App entrypoint script.')
