@@ -274,13 +274,13 @@ session_list = []
 # running participant level
 if args.analysis_level == "participant":
     for subject_label in subjects_to_analyze:
-        pdb.set_trace()
         subject_list.append([subject_label])
         # if subject label has sessions underneath those need to be outputted into different directories
         if glob(os.path.join(args.bids_dir, "sub-" + subject_label, "ses-*")):
             ses_dirs = glob(os.path.join(args.bids_dir, "sub-" + subject_label, "ses-*"))
             ses_to_analyze = [ses_dir.split("-")[-1] for ses_dir in ses_dirs]
             for ses_label in ses_to_analyze:
+                pdb.set_trace()
                 session_list.append([[session_list]])
                 data.update({"SessionID": subject_label})
                 struct_stages_dict = OrderedDict([("PreFreeSurfer", partial(run_pre_freesurfer,
