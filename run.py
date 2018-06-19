@@ -2,24 +2,19 @@
 from __future__ import print_function
 import argparse
 import os
-import shutil
-import nibabel
 from glob import glob
-from shutil import rmtree
 import subprocess
-import nibabel as nip
 from bids.grabbids import BIDSLayout
 from subprocess import Popen, PIPE
 from functools import partial
 from collections import OrderedDict
 import pdb
-import csv
+import json
 
 
 __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 'version')).read()
 
-#month dictionary
 monthDict = {'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
             'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'}
 
@@ -47,7 +42,7 @@ def run_pre_freesurfer(**args):
     cmd = cmd.format(**args)
     if not os.path.exists(cmd):
         pre_FS = 'No'
-        pre_FS_finish = 'NA'
+        pre_FS_finish = None
     else:
         cmd = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
         output = cmd
@@ -60,7 +55,7 @@ def run_pre_freesurfer(**args):
             pre_FS = 'Yes'
         else:
             pre_FS = 'No'
-            pre_FS_finish = 'NA'
+            pre_FS_finish = None
     return pre_FS, pre_FS_finish
 
 
@@ -71,7 +66,7 @@ def run_freesurfer(**args):
     cmd = cmd.format(**args)
     if not os.path.exists(cmd):
         FS = 'No'
-        FS_finish = 'NA'
+        FS_finish = None
     else:
         cmd = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
         output = cmd
@@ -83,7 +78,7 @@ def run_freesurfer(**args):
             FS = 'Yes'
         else:
             FS = 'No'
-            FS_finish = 'NA'
+            FS_finish = None
     return FS, FS_finish
 
 
@@ -92,7 +87,7 @@ def run_post_freesurfer(**args):
     cmd = "{path}/{subject}/MNINonLinear/fsaverage_LR32k/{subject}.32k_fs_LR.wb.spec"
     cmd_set = cmd.format(**args)
     if not os.path.exists(cmd_set):
-        post_FS_finish = 'NA'
+        post_FS_finish = None
         post_FS = 'No'
     else:
         output = os.path.exists(cmd_set)
@@ -106,16 +101,17 @@ def run_post_freesurfer(**args):
             post_FS_finish = finish_year + '/' + finish_month + '/' + finish_day
             post_FS = 'Yes'
         else:
-            post_FS_finish = 'NA'
+            post_FS_finish = None
             post_FS = 'No'
     return post_FS, post_FS_finish
+
 
 def run_generic_fMRI_volume_processsing(**args):
     args.update(os.environ)
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}.nii.gz"
     cmd_set = cmd.format(**args)
     if not os.path.exists(cmd_set):
-        volumefMRI_finish = 'NA'
+        volumefMRI_finish = None
         volumefMRI = 'No'
     else:
         output = os.path.exists(cmd_set)
@@ -130,16 +126,17 @@ def run_generic_fMRI_volume_processsing(**args):
             volumefMRI_finish = finish_year + '/' + finish_month + '/' + finish_day
             volumefMRI = 'Yes'
         else:
-            volumefMRI_finish = 'NA'
+            volumefMRI_finish = None
             volumefMRI = 'No'
     return volumefMRI, volumefMRI_finish
+
 
 def run_generic_fMRI_surface_processsing(**args):
     args.update(os.environ)
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas.dtseries.nii"
     cmd_set = cmd.format(**args)
     if not os.path.exists(cmd_set):
-        surfacefMRI_finish = 'NA'
+        surfacefMRI_finish = None
         surfacefMRI = 'No'
     else:
         output = os.path.exists(cmd_set)
@@ -154,16 +151,17 @@ def run_generic_fMRI_surface_processsing(**args):
             surfacefMRI_finish = finish_year + '/' + finish_month + '/' + finish_day
             surfacefMRI = 'Yes'
         else:
-            surfacefMRI_finish = 'NA'
+            surfacefMRI_finish = None
             surfacefMRI = 'No'
     return surfacefMRI, surfacefMRI_finish
+
 
 def run_ICAFIX_processing(**args):
     args.update(os.environ)
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_hp{high_pass}.ica/fix4melview_{high_pass}_thr10.txt"
     cmd_set = cmd.format(**args)
     if not os.path.exists(cmd_set):
-        ICAFIX_finish = 'NA'
+        ICAFIX_finish = None
         ICAFIX = 'No'
     else:
         output = os.path.exists(cmd_set)
@@ -178,16 +176,17 @@ def run_ICAFIX_processing(**args):
             ICAFIX_finish = finish_year + '/' + finish_month + '/' + finish_day
             ICAFIX = 'Yes'
         else:
-            ICAFIX_finish = 'NA'
+            ICAFIX_finish = None
             ICAFIX = 'No'
     return ICAFIX, ICAFIX_finish
+
 
 def run_PostFix_processing(**args):
     args.update(os.environ)
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{subject}_{fmriname}_ICA_Classification_singlescreen.scene"
     cmd_set = cmd.format(**args)
     if not os.path.exists(cmd_set):
-        PostFix_finish = 'NA'
+        PostFix_finish = None
         PostFix = 'No'
     else:
         output = os.path.exists(cmd_set)
@@ -202,16 +201,17 @@ def run_PostFix_processing(**args):
             PostFix_finish = finish_year + '/' + finish_month + '/' + finish_day
             PostFix = 'Yes'
         else:
-            PostFix_finish = 'NA'
+            PostFix_finish = None
             PostFix = 'No'
     return PostFix, PostFix_finish
+
 
 def run_RestingStateStats_processing(**args):
     args.update(os.environ)
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas_stats.dscalar.nii"
     cmd_set = cmd.format(**args)
     if not os.path.exists(cmd_set):
-        RSS_finish = 'NA'
+        RSS_finish = None
         RSS = 'No'
     else:
         output = os.path.exists(cmd_set)
@@ -226,7 +226,7 @@ def run_RestingStateStats_processing(**args):
             RSS_finish = finish_year + '/' + finish_month + '/' + finish_day
             RSS = 'Yes'
         else:
-            RSS_finish = 'NA'
+            RSS_finish = None
             RSS = 'No'
     return RSS, RSS_finish
 
@@ -236,7 +236,7 @@ def run_diffusion_processsing(**args):
     cmd = "{path}/{subject}/MNINonLinear/Results/Diffusion/eddy/eddy_unwarped_images.eddy_post_eddy_shell_alignment_parameters"
     cmd_set = cmd.format(**args)
     if not os.path.exists(cmd_set):
-        Diffusion_finish = 'NA'
+        Diffusion_finish = None
         Diffusion = 'No'
     else:
         output = os.path.exists(cmd_set)
@@ -251,9 +251,10 @@ def run_diffusion_processsing(**args):
             Diffusion_finish = finish_year + '/' + finish_month + '/' + finish_day
             Diffusion = 'Yes'
         else:
-            Diffusion_finish = 'NA'
+            Diffusion_finish = None
             Diffusion = 'No'
     return Diffusion, Diffusion_finish
+
 
 parser = argparse.ArgumentParser(description='HCP Pipeline status BIDS App (structural, functional MRI, diffusion, resting state).')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
@@ -282,12 +283,10 @@ parser.add_argument('-v', '--version', action='version',
 
 
 args = parser.parse_args()
-
 run("bids-validator " + args.bids_dir)
-
 layout = BIDSLayout(args.bids_dir)
-
 subjects_to_analyze = []
+
 # only for a subset of subjects
 if args.participant_label:
     subjects_to_analyze = args.participant_label
@@ -296,23 +295,19 @@ else:
     subject_dirs = glob(os.path.join(args.output_dir, "sub-*"))
     subjects_to_analyze = [subject_dir.split("-")[-1] for subject_dir in subject_dirs]
 
-
-#create csv
-csvfile = open(args.output_dir + '/HCP_processing_status.csv', 'w')
-fieldnames = ['subject_id', 'session_id', 'PreFreeSurfer', 'Finish Date', 'FreeSurfer', 'Finish Date',
-              'PostFreeSurfer', 'Finish Date', 'fMRIVolume', 'Finish Date', 'fMRISurface', 'Finish Date',
-              'ICAFIX', 'Finish Date', 'PostFix', 'Finish Date', 'RestingStateStats', 'Finish Date', 'DiffusionProcessing', 'Finish Date']
-writer = csv.writer(csvfile, delimiter=',')
-writer.writerow(fieldnames)
+data = {}
 
 # running participant level
 if args.analysis_level == "participant":
     for subject_label in subjects_to_analyze:
+        with open(args.output_dir + '/HCP_processing_status.csv', 'w') as json:
+            data.update({"SubjectID": subject_label})
         # if subject label has sessions underneath those need to be outputted into different directories
         if glob(os.path.join(args.bids_dir, "sub-" + subject_label, "ses-*")):
             ses_dirs = glob(os.path.join(args.bids_dir, "sub-" + subject_label, "ses-*"))
             ses_to_analyze = [ses_dir.split("-")[-1] for ses_dir in ses_dirs]
             for ses_label in ses_to_analyze:
+                data.update({"SessionID": subject_label})
                 struct_stages_dict = OrderedDict([("PreFreeSurfer", partial(run_pre_freesurfer,
                                                                             path=args.output_dir + "/sub-%s" % (
                                                                                 subject_label),
@@ -330,8 +325,12 @@ if args.analysis_level == "participant":
                     if stage in args.stages:
                         if stage == "PreFreeSurfer":
                             pre_FS, pre_FS_finish = stage_func()
+                            data.update({"PreFSFinish": pre_FS})
+                            data.update({"PreFSFinishDate": pre_FS_finish})
                         elif stage == "FreeSurfer":
                             FS, FS_finish = stage_func()
+                            data.update({"FSFinish": FS})
+                            data.update({"FSFinishDate": FS_finish})
                         else:
                             post_FS, post_FS_finish = stage_func()
                 bolds = [f.filename for f in layout.get(subject=subject_label, session=ses_label,
@@ -339,6 +338,20 @@ if args.analysis_level == "participant":
                                                         extensions=["nii.gz", "nii"])]
                 highpass = "2000"
                 training_data = "HCP_hp2000"
+
+                data.append({["fMRINames"]: bolds})
+
+                volumefMRI_list = []
+                volumefMRI_finish_list = []
+                surfacefMRI_list = []
+                surfacefMRI_finish_list = []
+
+                RestingStateStats_list = []
+                RestingStateStats_finish_list = []
+                ICAFIX_list = []
+                ICAFIX_finish_list = []
+                PostFix_list = []
+                PostFix_finish_list = []
 
                 for fmritcs in bolds:
                     fmriname = fmritcs.split("%s/func/" % ses_label)[-1].split(".")[0]
@@ -372,23 +385,42 @@ if args.analysis_level == "participant":
                                                                                       subject="ses-%s" % ses_label,
                                                                                       fmriname=fmriname))])
                     # TODO: finish task fMRI portion
-                    #else:
-                        #task_stages_dict
+                    for stage, stage_func in func_stages_dict.iteritems():
+                        if stage in args.stages:
+                            if stage == "fMRIVolume":
+                                volumefMRI, volumefMRI_finish = stage_func()
+                                volumefMRI_list.append(volumefMRI)
+                                volumefMRI_finish_list.append(volumefMRI_finish)
+                            else:
+                                surfacefMRI, surfacefMRI_finish = stage_func()
+                                surfacefMRI_list.append(surfacefMRI)
+                                surfacefMRI_finish_list.append(surfacefMRI_finish)
 
-                for stage, stage_func in func_stages_dict.iteritems():
-                    if stage in args.stages:
-                        if stage == "fMRIVolume":
-                            volumefMRI, volumefMRI_finish = stage_func()
-                        else:
-                            surfacefMRI, surfacefMRI_finish = stage_func()
-                for stage, stage_func in rest_stages_dict.iteritems():
-                    if stage in args.stages:
-                        if stage == "ICAFIX":
-                            ICAFIX, ICAFIX_finish = stage_func()
-                        elif stage == "PostFix":
-                            PostFix, PostFix_finish = stage_func()
-                        else:
-                            RSS, RSS_finish = stage_func()
+                    for stage, stage_func in rest_stages_dict.iteritems():
+                        if stage in args.stages:
+                            if stage == "ICAFIX":
+                                ICAFIX, ICAFIX_finish = stage_func()
+                                ICAFIX_list.append(ICAFIX)
+                                ICAFIX_finish_list.append(ICAFIX_finish)
+                            elif stage == "PostFix":
+                                PostFix, PostFix_finish = stage_func()
+                                PostFix_list.append(PostFix)
+                                PostFix_finish_list.append(PostFix_finish)
+                            else:
+                                RSS, RSS_finish = stage_func()
+                                RestingStateStats_list.append(RSS)
+                                RestingStateStats_finish_list.append(RSS_finish)
+
+                data.update({"fMRIVolumeFinish": volumefMRI_list})
+                data.update({"fMRIVolumeFinishDate": volumefMRI_finish_list})
+                data.update({"fMRISurfaceFinish": surfacefMRI_list})
+                data.update({"fMRISurfaceFinishDate": surfacefMRI_finish_list})
+                data.update({"ICAFIXFinish": ICAFIX_list})
+                data.update({"ICAFIXFinishDate": ICAFIX_finish_list})
+                data.update({"PostFixFinish": PostFix_list})
+                data.update({"PostFixFinishDate": PostFix_finish_list})
+                data.update({"RestingStateStatsFinish": RestingStateStats_list})
+                data.update({"RestingStateStatsFinishDate": RestingStateStats_finish_list})
 
                 dif_stages_dict = OrderedDict([("DiffusionPreprocessing", partial(run_diffusion_processsing,
                                                                                   path=args.output_dir + "/sub-%s" % (
@@ -398,37 +430,9 @@ if args.analysis_level == "participant":
                 for stage, stage_func in dif_stages_dict.iteritems():
                     if stage in args.stages:
                         Diffusion, Diffusion_finish = stage_func()
+                        data.update({"DiffusionPreProcessingFnish": Diffusion})
+                        data.update({"DiffusionPrePreprocessingFinishDate": Diffusion_finish})
 
-                row = [subject_label, ses_label, pre_FS, pre_FS_finish, FS, FS_finish, post_FS, post_FS_finish,
-                       volumefMRI, volumefMRI_finish, surfacefMRI, surfacefMRI_finish, ICAFIX, ICAFIX_finish,
-                       PostFix, PostFix_finish, RSS, RSS, Diffusion, Diffusion_finish]
-                writer.writerow(row)
-
-                #writer.writerow({writer.fieldnames[0]: subject_label, writer.fieldnames[1]: ses_label,
-                #                 writer.fieldnames[2]: pre_FS, writer.fieldnames[3]: pre_FS_finish,
-                #                 writer.fieldnames[4]: FS, writer.fieldnames[5]: FS_finish,
-                #                 writer.fieldnames[6]: post_FS, writer.fieldnames[7]: post_FS_finish,
-                #                 writer.fieldnames[8]: volumefMRI, writer.fieldnames[9]: volumefMRI_finish,
-                #                 writer.fieldnames[10]: surfacefMRI, writer.fieldnames[11]: surfacefMRI_finish,
-                #                 writer.fieldnames[12]: ICAFIX, writer.fieldnames[13]: ICAFIX_finish,
-                #                 writer.fieldnames[14]: PostFix, writer.fieldnames[15]: PostFix_finish,
-                #                 writer.fieldnames[16]: RSS, writer.fieldnames[17]: RSS_finish,
-                #                 #writer.fieldnames[18]: TaskfMRI, writer.fieldnames[19]: TaskfMRI_finish,
-                #                 writer.fieldnames[20]: Diffusion, writer.fieldnames[21]: Diffusion_finish})
-
-        #else:
-            #ses_label = ' '
-            """
-            writer.writerow({writer.fieldnames[0]: subject_label, writer.fieldnames[1]: ses_label,
-                             writer.fieldnames[2]: pre_FS, writer.fieldnames[3]: pre_FS_finish,
-                             writer.fieldnames[4]: FS, writer.fieldnames[5]: FS_finish,
-                             writer.fieldnames[6]: post_FS, writer.fieldnames[7]: post_FS_finish,
-                             writer.fieldnames[8]: volumefMRI, writer.fieldnames[9]: volumefMRI_finish,
-                             writer.fieldnames[10]: surfacefMRI, writer.fieldnames[11]: surfacefMRI_finish,
-                             writer.fieldnames[12]: ICAFIX, writer.fieldnames[13]: ICAFIX_finish,
-                             writer.fieldnames[14]: PostFix, writer.fieldnames[15]: PostFix_finish,
-                             writer.fieldnames[16]: RSS, writer.fieldnames[17]: RSS_finish,
-                             writer.fieldnames[18]: TaskfMRI, writer.fieldnames[19]: TaskfMRI_finish,
-                             writer.fieldnames[20]: Diffusion, writer.fieldnames[21]: Diffusion_finish})
-            """
-csvfile.close()
+pdb.set_trace()
+with open(args.output_dir + '/HCP_processing_status.json', 'w') as json_file:
+    json.dump(data, json_file)
