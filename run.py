@@ -339,7 +339,7 @@ if args.analysis_level == "participant":
                 highpass = "2000"
                 training_data = "HCP_hp2000"
 
-                data.append({["fMRINames"]: bolds})
+                data.update({["fMRINames"]: bolds})
 
                 volumefMRI_list = []
                 volumefMRI_finish_list = []
