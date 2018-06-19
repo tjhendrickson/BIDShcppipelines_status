@@ -269,15 +269,19 @@ else:
     subjects_to_analyze = [subject_dir.split("-")[-1] for subject_dir in subject_dirs]
 
 data = {}
+subject_list = []
+session_list = []
 # running participant level
 if args.analysis_level == "participant":
     for subject_label in subjects_to_analyze:
-        data.update({"SubjectID": subject_label})
+        pdb.set_trace()
+        subject_list.append([subject_label])
         # if subject label has sessions underneath those need to be outputted into different directories
         if glob(os.path.join(args.bids_dir, "sub-" + subject_label, "ses-*")):
             ses_dirs = glob(os.path.join(args.bids_dir, "sub-" + subject_label, "ses-*"))
             ses_to_analyze = [ses_dir.split("-")[-1] for ses_dir in ses_dirs]
             for ses_label in ses_to_analyze:
+                session_list.append([[session_list]])
                 data.update({"SessionID": subject_label})
                 struct_stages_dict = OrderedDict([("PreFreeSurfer", partial(run_pre_freesurfer,
                                                                             path=args.output_dir + "/sub-%s" % (
@@ -367,21 +371,21 @@ if args.analysis_level == "participant":
                                 surfacefMRI, surfacefMRI_finish = stage_func()
                                 surfacefMRI_list.append(surfacefMRI)
                                 surfacefMRI_finish_list.append(surfacefMRI_finish)
-
-                    for stage, stage_func in rest_stages_dict.iteritems():
-                        if stage in args.stages:
-                            if stage == "ICAFIX":
-                                ICAFIX, ICAFIX_finish = stage_func()
-                                ICAFIX_list.append(ICAFIX)
-                                ICAFIX_finish_list.append(ICAFIX_finish)
-                            elif stage == "PostFix":
-                                PostFix, PostFix_finish = stage_func()
-                                PostFix_list.append(PostFix)
-                                PostFix_finish_list.append(PostFix_finish)
-                            else:
-                                RSS, RSS_finish = stage_func()
-                                RestingStateStats_list.append(RSS)
-                                RestingStateStats_finish_list.append(RSS_finish)
+                    if 'rest' in fmriname:
+                        for stage, stage_func in rest_stages_dict.iteritems():
+                            if stage in args.stages:
+                                if stage == "ICAFIX":
+                                    ICAFIX, ICAFIX_finish = stage_func()
+                                    ICAFIX_list.append(ICAFIX)
+                                    ICAFIX_finish_list.append(ICAFIX_finish)
+                                elif stage == "PostFix":
+                                    PostFix, PostFix_finish = stage_func()
+                                    PostFix_list.append(PostFix)
+                                    PostFix_finish_list.append(PostFix_finish)
+                                else:
+                                    RSS, RSS_finish = stage_func()
+                                    RestingStateStats_list.append(RSS)
+                                    RestingStateStats_finish_list.append(RSS_finish)
 
                 data.update({"fMRINames": fmriname_list})
                 data.update({"fMRIVolumeFinish": volumefMRI_list})
@@ -405,7 +409,8 @@ if args.analysis_level == "participant":
                         Diffusion, Diffusion_finish = stage_func()
                         data.update({"DiffusionPreProcessingFnish": Diffusion})
                         data.update({"DiffusionPrePreprocessingFinishDate": Diffusion_finish})
+                pdb.set_trace()
+                #with open(args.output_dir + '/HCP_processing_status.json', 'w') as json_file:
+                #    json.dump(data, json_file)
 
 
-with open(args.output_dir + '/HCP_processing_status.json', 'w') as json_file:
-    json.dump(data, json_file)
