@@ -287,6 +287,8 @@ ICAFIX_list = []
 ICAFIX_finish_list = []
 PostFix_list = []
 PostFix_finish_list = []
+Diffusion_list = []
+Diffusion_finish_list = []
 
 # running participant level
 if args.analysis_level == "participant":
@@ -297,7 +299,6 @@ if args.analysis_level == "participant":
             ses_to_analyze = [ses_dir.split("-")[-1] for ses_dir in ses_dirs]
             for ses_label in ses_to_analyze:
                 session_list.append([ses_label])
-                #data.update({"SessionID": subject_label})
                 struct_stages_dict = OrderedDict([("PreFreeSurfer", partial(run_pre_freesurfer,
                                                                             path=args.output_dir + "/sub-%s" % (
                                                                                 subject_label),
@@ -337,6 +338,7 @@ if args.analysis_level == "participant":
                 highpass = "2000"
                 training_data = "HCP_hp2000"
 
+                session_fmriname_list = []
                 session_surfacefMRI_list = []
                 session_surfacefMRI_finish_list = []
                 session_volumefMRI_list = []
@@ -351,7 +353,7 @@ if args.analysis_level == "participant":
                 for fmritcs in bolds:
                     fmriname = fmritcs.split("%s/func/" % ses_label)[-1].split(".")[0]
                     assert fmriname
-                    fmriname_list.append(fmriname)
+                    session_fmriname_list.append(fmriname)
 
                     func_stages_dict = OrderedDict([("fMRIVolume", partial(run_generic_fMRI_volume_processsing,
                                                                            path=args.output_dir + "/sub-%s" % (
@@ -386,12 +388,12 @@ if args.analysis_level == "participant":
                             if stage == "fMRIVolume":
                                 volumefMRI, volumefMRI_finish = stage_func()
                                 session_volumefMRI_list.append(volumefMRI)
-                                session_surfacefMRI_finish_list.append(volumefMRI_finish)
+                                session_volumefMRI_finish_list.append(volumefMRI_finish)
                             else:
                                 surfacefMRI, surfacefMRI_finish = stage_func()
                                 session_surfacefMRI_list.append(surfacefMRI)
                                 session_surfacefMRI_finish_list.append(surfacefMRI_finish)
-                    if 'rest' in bolds:
+                    if 'rest' in fmriname:
                         for stage, stage_func in rest_stages_dict.iteritems():
                             if stage in args.stages:
                                 if stage == "ICAFIX":
@@ -406,6 +408,8 @@ if args.analysis_level == "participant":
                                     RSS, RSS_finish = stage_func()
                                     session_RestingStateStats_list.append(RSS)
                                     session_RestingStateStats_finish_list.append(RSS_finish)
+
+                fmriname_list.append([session_fmriname_list])
 
                 volumefMRI_list.append([session_volumefMRI_list])
                 volumefMRI_finish_list.append([session_volumefMRI_finish_list])
@@ -427,25 +431,88 @@ if args.analysis_level == "participant":
                                                                                   path=args.output_dir + "/sub-%s" % (
                                                                                       subject_label),
                                                                                   subject="ses-%s" % (ses_label)))])
-                pdb.set_trace()
                 for stage, stage_func in dif_stages_dict.iteritems():
                     if stage in args.stages:
                         Diffusion, Diffusion_finish = stage_func()
-                        data.update({"DiffusionPreProcessingFnish": Diffusion})
-                        data.update({"DiffusionPrePreprocessingFinishDate": Diffusion_finish})
-"""
-                with open(args.output_dir + '/HCP_processing_status.json', 'w') as json_file:
-                    data.update({"fMRINames": fmriname_list})
-                    data.update({"fMRIVolumeFinish": volumefMRI_list})
-                    data.update({"fMRIVolumeFinishDate": volumefMRI_finish_list})
-                    data.update({"fMRISurfaceFinish": surfacefMRI_list})
-                    data.update({"fMRISurfaceFinishDate": surfacefMRI_finish_list})
-                    data.update({"ICAFIXFinish": ICAFIX_list})
-                    data.update({"ICAFIXFinishDate": ICAFIX_finish_list})
-                    data.update({"PostFixFinish": PostFix_list})
-                    data.update({"PostFixFinishDate": PostFix_finish_list})
-                    data.update({"RestingStateStatsFinish": RestingStateStats_list})
-                    data.update({"RestingStateStatsFinishDate": RestingStateStats_finish_list})
-                    json.dump(data, json_file)
-"""
+                        Diffusion_list.append(Diffusion)
+                        Diffusion_finish_list.append(Diffusion_finish)
+    pre_FS_num = 0
+    for i in range(len(session_list)):
+        if pre_FS_list[i][0] == 'Yes':
+            pre_FS_num += 1
+
+    FS_num = 0
+    for i in range(len(session_list)):
+        if FS_list[i][0] == 'Yes':
+            FS_num += 1
+
+    post_FS_num = 0
+    for i in range(len(session_list)):
+        if post_FS_list[i][0] == 'Yes':
+            post_FS_num += 1
+
+    Diffusion_num = 0
+    for i in range(len(session_list)):
+        if Diffusion_list[i][0] == 'Yes':
+            Diffusion_num += 1
+
+    fMRITotal_num = 0
+    for i in range(len(session_list)):
+        for j in range(len(fmriname_list[i][0])):
+            fMRITotal_num += 1
+
+    fMRIVolume_num = 0
+    for i in range(len(session_list)):
+        for j in range(len(volumefMRI_list[i][0])):
+            if volumefMRI_list[i][0][j] == 'Yes':
+                fMRIVolume_num += 1
+
+    fMRISurface_num = 0
+    for i in range(len(session_list)):
+        for j in range(len(surfacefMRI_list[i][0])):
+            if surfacefMRI_list[i][0][j] == 'Yes':
+                fMRISurface_num += 1
+
+    ICAFIX_num = 0
+    for i in range(len(session_list)):
+        for j in range(len(ICAFIX_list[i][0])):
+            if ICAFIX_list[i][0][j] == 'Yes':
+                ICAFIX_num += 1
+
+    PostFix_num = 0
+    for i in range(len(session_list)):
+        for j in range(len(PostFix_list[i][0])):
+            if PostFix_list[i][0][j] == 'Yes':
+                PostFix_num += 1
+
+    RestingStateStats_num = 0
+    for i in range(len(session_list)):
+        for j in range(len(RestingStateStats_list[i][0])):
+            if RestingStateStats_list[i][0][j] == 'Yes':
+                RestingStateStats_num += 1
+
+    pdb.set_trace()
+
+    with open(args.output_dir + '/HCP_processing_status.json', 'w') as json_file:
+        data.update({"Scanning Sessions": session_list })
+        data.update({"PreFreeSurferFinish": pre_FS_list})
+        data.update({"PreFreeSurferFinish": pre_FS_finish_list})
+        data.update({"FreeSurferFinish": FS_list})
+        data.update({"FreeSurferFinishDate": FS_finish_list})
+        data.update({"PostFreeSurfer": post_FS_list})
+        data.update({"PostFreeSurferFinishList": post_FS_finish_list})
+        data.update({"fMRINames": fmriname_list})
+        data.update({"fMRIVolumeFinish": volumefMRI_list})
+        data.update({"fMRIVolumeFinishDate": volumefMRI_finish_list})
+        data.update({"fMRISurfaceFinish": surfacefMRI_list})
+        data.update({"fMRISurfaceFinishDate": surfacefMRI_finish_list})
+        data.update({"ICAFIXFinish": ICAFIX_list})
+        data.update({"ICAFIXFinishDate": ICAFIX_finish_list})
+        data.update({"PostFixFinish": PostFix_list})
+        data.update({"PostFixFinishDate": PostFix_finish_list})
+        data.update({"RestingStateStatsFinish": RestingStateStats_list})
+        data.update({"RestingStateStatsFinishDate": RestingStateStats_finish_list})
+        data.update({"DiffusionPreProcessingFinish": Diffusion_list})
+        data.update({"DiffusionPreProcessingFinishDate": Diffusion_finish_list})
+        json.dump(data, json_file)
 
