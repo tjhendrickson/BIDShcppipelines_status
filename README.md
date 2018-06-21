@@ -104,7 +104,19 @@ RestingStateStatsFinish: whether RestingStateStats preprocessing completed [Yes/
 RestingStateStatsFinishDate: date of RestingStateStats preprocessing completion [Year/Month/Day]
 RestingStateStatsFinishTotal: number of participants with completed RestingStateStats step [integer]
 ```
-
+### Accessing Outputs
+Example of how to access information within JSON:
+```
+python
+Python 2.7.5 (default, Feb 20 2018, 09:19:12) 
+[GCC 4.8.5 20150623 (Red Hat 4.8.5-28)] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+>>> filename="/path/to/HCP_processing_status.json"
+>>> import json
+>>> with open(filename,'r') as f:
+...     datasource = json.load(f)
+>>> print datastore["key you want to search"]
+```
 
 
 
