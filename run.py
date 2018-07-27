@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 from __future__ import print_function
 import argparse
 import os
@@ -228,6 +228,15 @@ def run_diffusion_processsing(**args):
             Diffusion = 'No'
     return Diffusion, Diffusion_finish
 
+def snapshot(json_file, layout):
+    pass
+    #args.update(os.environ)
+    #with open(json_file, 'r') as f:
+    #    datasource = json.load(f)
+
+
+
+
 
 parser = argparse.ArgumentParser(description='HCP Pipeline status BIDS App (structural, functional MRI, diffusion, resting state).')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
@@ -254,9 +263,7 @@ parser.add_argument('--stages', help='Which stages to run. Space separated list.
 parser.add_argument('-v', '--version', action='version',
                     version='HCPPipeline Status {}'.format(__version__))
 
-
 args = parser.parse_args()
-run("bids-validator " + args.bids_dir)
 layout = BIDSLayout(args.bids_dir)
 subjects_to_analyze = []
 
@@ -494,4 +501,6 @@ if args.analysis_level == "participant":
         data.update({"DiffusionPreProcessingTotal": Diffusion_num})
         json.dump(data, json_file)
     os.system("chmod 550 " + args.output_dir + '/HCP_processing_status.json')
+
+snapshot(json_file, layout)
 

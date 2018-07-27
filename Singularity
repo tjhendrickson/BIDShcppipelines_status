@@ -5,8 +5,7 @@ From: ubuntu:trusty-20170119
 %post
     # Install python and nibabel
     apt-get update -y
-    apt-get install -y python3 python3-pip && \
-    pip3 install nibabel six setuptools
+    apt-get install -y python-pip python-six python-nibabel python-setuptools python-dev git 
 
     # Install the validator 0.26.11, along with pybids 0.6.0
     apt-get update -y
@@ -21,14 +20,16 @@ From: ubuntu:trusty-20170119
 
     #curl -L https://www.npmjs.org/install.sh | sh
     npm install -g bids-validator@0.26.11
-    pip3 install git+https://github.com/INCF/pybids.git@0.6.0
+    pip install git+https://github.com/INCF/pybids.git@0.6.0
 
 
     export PYTHONPATH=""
 
     #make /bids_dir and /output_dir
-    mkdir /bids_dir && \
+    mkdir /bids_dir
     mkdir /output_dir
+
+    chmod +x run.py
 
 %files
     run.py /run.py
