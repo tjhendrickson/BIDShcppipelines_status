@@ -15,11 +15,10 @@ From: ubuntu:trusty-20170119
     
     # Install python and nibabel
     apt-get update
-    apt-get install -y python-pip python-six python-nibabel python-setuptools git libssl-dev nodejs
+    apt-get install -y python-pip python-nibabel python-setuptools git nodejs
     
     npm install -g bids-validator@0.26.11
     pip install git+https://github.com/INCF/pybids.git@0.6.0
-
 
     export PYTHONPATH=""
 
