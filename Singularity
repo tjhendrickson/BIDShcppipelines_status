@@ -4,8 +4,8 @@ From: ubuntu:trusty-20170119
 
 %post
     # Install the validator 0.26.11, along with pybids 0.6.0
-    apt-get update -y
-    apt-get install -y curl
+    apt-get update
+    apt-get install -y curl tcsh bc tar libgomp1 perl-modules
     
     curl -sSL http://neuro.debian.net/lists/trusty.us-ca.full >> /etc/apt/sources.list.d/neurodebian.sources.list
     sed -i -e 's,main *$,main contrib non-free,g' /etc/apt/sources.list.d/neurodebian.sources.list
@@ -14,7 +14,7 @@ From: ubuntu:trusty-20170119
     curl -sL https://deb.nodesource.com/setup_6.x | bash -
     
     # Install python and nibabel
-    apt-get update -y
+    apt-get update
     apt-get install -y python-pip python-six python-nibabel python-setuptools git build-essential libssl-dev nodejs
     
     npm install -g bids-validator@0.26.11
