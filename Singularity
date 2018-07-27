@@ -5,7 +5,7 @@ From: ubuntu:trusty-20170119
 %post
     # Install python and nibabel
     apt-get update -y
-    apt-get install -y python-pip python-six python-nibabel python-setuptools python-dev git 
+    apt-get install -y python-pip python-six python-nibabel python-setuptools git 
 
     # Install the validator 0.26.11, along with pybids 0.6.0
     apt-get update -y
