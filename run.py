@@ -500,7 +500,7 @@ if args.analysis_level == "participant":
         data.update({"DiffusionPreProcessingFinishDate": Diffusion_finish_list})
         data.update({"DiffusionPreProcessingTotal": Diffusion_num})
         json.dump(data, json_file)
-    os.system("chmod 550 " + args.output_dir + '/HCP_processing_status.json')
+    os.system("chmod 777 " + args.output_dir + '/HCP_processing_status.json')
 
 snapshot(json_file, layout)
 
