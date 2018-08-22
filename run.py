@@ -10,6 +10,7 @@ from functools import partial
 from collections import OrderedDict
 import pdb
 import json
+from colorama import Fore
 
 
 __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -230,9 +231,35 @@ def run_diffusion_processsing(**args):
 
 def snapshot(json_file, layout):
     pass
-    #args.update(os.environ)
-    #with open(json_file, 'r') as f:
-    #    datasource = json.load(f)
+    args.update(os.environ)
+    with open(json_file, 'r') as f:
+        data = json.load(f)
+    ii=0
+    jj=0
+    session_total = len(data["Scanning Sessions"])
+    fmri_total = len([ item for sublist in data["fMRINames"] for subsublist in sublist for item in subsublist])
+    failed_structs = []
+    failed_fMRIs = []
+    for ses_counter, session_id in enumerate(data["Scanning Sessions"]):
+        if data["PostFreeSurferFinish"][ses_counter][0] == 'Yes':
+            ii = ii + 1
+        else:
+            failed_structs.append(session_id)
+        for fMRI_counter, fMRI_status in enumerate(data["fMRISurfaceFinish"][ses_counter][0]):
+            if fMRI_status == 'Yes':
+                jj = jj + 1
+            else:
+                failed_fMRIs.append(data["fMRINames"][ses_counter][0][fMRI_counter])
+
+    print(Fore.WHITE + "Total number of scanning sessions: %s" %(session_total))
+    print(Fore.WHITE + "Structural Preprocessing Summary:")
+    if ii < session_total:
+        print(Fore.RED + "%s completed correctly" % jj)
+        pprint.pprint(Fore.RED "The sessions with failed structural prepocessing: %" %(failed_structs))
+
+
+
+        
 
 
 
