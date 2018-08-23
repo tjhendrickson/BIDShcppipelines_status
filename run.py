@@ -229,8 +229,8 @@ def run_diffusion_processsing(**args):
             Diffusion = 'No'
     return Diffusion, Diffusion_finish
 def snapshot(json_file):                                                                                                                                                                                                                                                                      
-                                                                               
-    data = json_file                                                                                    
+    with open(json_file, 'r') as f:                                                                           
+        data = json.load(f)                                                                                    
     ii=0                                                                                                       
     jj=0             
     kk=0                                                                                                       
@@ -556,6 +556,6 @@ if args.analysis_level == "participant":
         data.update({"DiffusionPreProcessingTotal": Diffusion_num})
         json.dump(data, json_file)
         os.system("chmod 777 " + args.output_dir + '/HCP_processing_status.json')
-        snapshot(json_file)
         json_file.close()
+snapshot(args.output_dir + '/HCP_processing_status.json')
 
