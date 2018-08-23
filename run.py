@@ -228,8 +228,7 @@ def run_diffusion_processsing(**args):
             Diffusion_finish = None
             Diffusion = 'No'
     return Diffusion, Diffusion_finish
-def snapshot(json_file):                                                                                                                                                                                   
-    args.update(os.environ)                                                                                   
+def snapshot(json_file):                                                                                                                                                                                                                                                                      
     with open(json_file, 'r') as f:                                                                            
         data = json.load(f)                                                                                    
     ii=0                                                                                                       
