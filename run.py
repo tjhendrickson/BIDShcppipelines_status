@@ -229,8 +229,8 @@ def run_diffusion_processsing(**args):
             Diffusion = 'No'
     return Diffusion, Diffusion_finish
 def snapshot(json_file):                                                                                                                                                                                                                                                                      
-    with open(json_file, 'r') as f:                                                                            
-        data = json.load(f)                                                                                    
+                                                                               
+    data = json_file                                                                                    
     ii=0                                                                                                       
     jj=0             
     kk=0                                                                                                       
@@ -282,7 +282,7 @@ def snapshot(json_file):
         print(Fore.RED + "The sessions with failed or yet to be run diffusion prepocessing:")
         pp.pprint(failed_dMRIs)                                                              
     else:                                                                                    
-        print(Fore.LIGHTGREEN_EX + "All sessions have completed diffusion preprocessing")  
+        print(Fore.LIGHTGREEN_EX + "All sessions have completed diffusion preprocessing")
         
 
 
@@ -555,7 +555,7 @@ if args.analysis_level == "participant":
         data.update({"DiffusionPreProcessingFinishDate": Diffusion_finish_list})
         data.update({"DiffusionPreProcessingTotal": Diffusion_num})
         json.dump(data, json_file)
-    os.system("chmod 777 " + args.output_dir + '/HCP_processing_status.json')
-
-snapshot(json_file)
+        os.system("chmod 777 " + args.output_dir + '/HCP_processing_status.json')
+        snapshot(json_file)
+        json_file.close()
 
