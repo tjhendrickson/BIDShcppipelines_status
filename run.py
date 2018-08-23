@@ -8,9 +8,9 @@ from bids.grabbids import BIDSLayout
 from subprocess import Popen, PIPE
 from functools import partial
 from collections import OrderedDict
-import pdb
 import json
-from colorama import Fore
+from colorama import Fore, init                                                                                  
+import pprint  
 
 
 __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -228,34 +228,63 @@ def run_diffusion_processsing(**args):
             Diffusion_finish = None
             Diffusion = 'No'
     return Diffusion, Diffusion_finish
-
-def snapshot(json_file, layout):
-    pass
-    args.update(os.environ)
-    with open(json_file, 'r') as f:
-        data = json.load(f)
-    ii=0
-    jj=0
-    session_total = len(data["Scanning Sessions"])
+def snapshot(json_file):                                                                                                                                                                                   
+    args.update(os.environ)                                                                                   
+    with open(json_file, 'r') as f:                                                                            
+        data = json.load(f)                                                                                    
+    ii=0                                                                                                       
+    jj=0             
+    kk=0                                                                                                       
+    session_total = len(data["Scanning Sessions"])                                                             
     fmri_total = len([ item for sublist in data["fMRINames"] for subsublist in sublist for item in subsublist])
-    failed_structs = []
-    failed_fMRIs = []
-    for ses_counter, session_id in enumerate(data["Scanning Sessions"]):
-        if data["PostFreeSurferFinish"][ses_counter][0] == 'Yes':
-            ii = ii + 1
-        else:
-            failed_structs.append(session_id)
+    failed_structs = []                                                                                        
+    failed_fMRIs = []                                                                                          
+    failed_dMRIs = []                                                                                          
+    for ses_counter, session_id in enumerate(data["Scanning Sessions"]):                                       
+        if data["PostFreeSurferFinish"][ses_counter][0] == 'Yes':                                              
+            ii = ii + 1                                                                                        
+        else:                                                                                                  
+            failed_structs.append(session_id)                                                                  
+        if data["DiffusionPreProcessingFinish"][ses_counter][0] == 'Yes':                                      
+            kk = kk + 1                                                                                        
+        else:                                                                                                  
+            failed_dMRIs.append(session_id)                                                   
         for fMRI_counter, fMRI_status in enumerate(data["fMRISurfaceFinish"][ses_counter][0]):
-            if fMRI_status == 'Yes':
-                jj = jj + 1
-            else:
-                failed_fMRIs.append(data["fMRINames"][ses_counter][0][fMRI_counter])
-
-    print(Fore.WHITE + "Total number of scanning sessions: %s" %(session_total))
-    print(Fore.WHITE + "Structural Preprocessing Summary:")
-    if ii < session_total:
-        print(Fore.RED + "%s completed correctly" % jj)
-        pprint.pprint(Fore.RED "The sessions with failed structural prepocessing: %" %(failed_structs))
+            if fMRI_status == 'Yes':                                                          
+                jj = jj + 1                                                                   
+            else:                                                                             
+                failed_fMRIs.append(data["fMRINames"][ses_counter][0][fMRI_counter])          
+                                                                                            
+    failed_fMRIs = [str(item) for item in failed_fMRIs]                                       
+    failed_structs = [str(item) for item in failed_structs]                                   
+    failed_dMRIs = [str(item) for item in failed_dMRIs]                                       
+    init()                                                                                    
+    pp = pprint.PrettyPrinter(indent = 4)                                                     
+    print(Fore.WHITE + "Total number of scanning sessions: %s" %(session_total))              
+    print                                                                           
+    print(Fore.WHITE + "Structural Preprocessing Summary:")                               
+    if ii < session_total:                                                                    
+        print(Fore.RED + "%s out of %s session completed correctly" % (ii, session_total))    
+        print(Fore.RED + "The sessions with failed or yet to be run structural prepocessing:")
+        pp.pprint(failed_structs)                                                             
+    else:                                                                                     
+        print(Fore.LIGHTGREEN_EX + "All sessions have completed structural preprocessing")    
+    print                                                                                     
+    print(Fore.WHITE + "Basic fMRI Preprocessing Summary:")                                   
+    if jj < fmri_total:                                                                       
+        print(Fore.RED + "%s out of %s fMRI scans completed correctly" %(jj, fmri_total))     
+        print(Fore.RED + "The failed or yet to be run fMRI Scans:")                           
+        pp.pprint(failed_fMRIs)                                                               
+    else:                                                                                     
+        print(Fore.LIGHTGREEN_EX + "All fMRI scans completed correctly")                      
+    print(Fore.WHITE + "Diffusion Preprocessing Summary:")                                 
+    if kk < session_total:                                                                   
+        print(Fore.RED + "%s out of %s sessions completed correctly" % (kk, session_total))  
+        print(Fore.RED + "The sessions with failed or yet to be run diffusion prepocessing:")
+        pp.pprint(failed_dMRIs)                                                              
+    else:                                                                                    
+        print(Fore.LIGHTGREEN_EX + "All sessions have completed diffusion preprocessing")  
+        
 
 
 
@@ -529,5 +558,5 @@ if args.analysis_level == "participant":
         json.dump(data, json_file)
     os.system("chmod 777 " + args.output_dir + '/HCP_processing_status.json')
 
-snapshot(json_file, layout)
+snapshot(json_file)
 
