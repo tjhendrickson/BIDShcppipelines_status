@@ -285,14 +285,6 @@ def snapshot(json_file):
         print(Fore.LIGHTGREEN_EX + "All sessions have completed diffusion preprocessing")
         
 
-
-
-        
-
-
-
-
-
 parser = argparse.ArgumentParser(description='HCP Pipeline status BIDS App (structural, functional MRI, diffusion, resting state).')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
                     'formatted according to the BIDS standard.')
@@ -555,7 +547,7 @@ if args.analysis_level == "participant":
         data.update({"DiffusionPreProcessingFinishDate": Diffusion_finish_list})
         data.update({"DiffusionPreProcessingTotal": Diffusion_num})
         json.dump(data, json_file)
-        os.system("chmod 777 " + args.output_dir + '/HCP_processing_status.json')
+        os.chmod(args.output_dir + '/HCP_processing_status.json', '0777')
         json_file.close()
 snapshot(args.output_dir + '/HCP_processing_status.json')
 
