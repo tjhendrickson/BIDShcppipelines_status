@@ -8,17 +8,12 @@ from bids.grabbids import BIDSLayout
 from subprocess import Popen, PIPE
 from functools import partial
 from collections import OrderedDict
-import json
-from colorama import Fore, init                                                                                  
-import pprint  
+import json                                                                               
+from terminaltables import AsciiTable 
 
 
 __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 'version')).read()
-
-monthDict = {'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
-            'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'}
-
 
 def run(command, env={}, cwd=None):
     merged_env = os.environ
@@ -43,21 +38,15 @@ def run_pre_freesurfer(**args):
     cmd = cmd.format(**args)
     if not os.path.exists(cmd):
         pre_FS = 'No'
-        pre_FS_finish = None
     else:
         cmd = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
         output = cmd
 
         if len(output) > 0:
-            finish_year = output.split(" ")[1].split("-")[0]
-            finish_month = output.split(" ")[1].split("-")[1]
-            finish_day = output.split(" ")[1].split("-")[2]
-            pre_FS_finish = finish_year + '/' + finish_month + '/' + finish_day
             pre_FS = 'Yes'
         else:
             pre_FS = 'No'
-            pre_FS_finish = None
-    return pre_FS, pre_FS_finish
+    return pre_FS
 
 
 def run_freesurfer(**args):
@@ -68,19 +57,13 @@ def run_freesurfer(**args):
     cmd = cmd.format(**args)
     if not os.path.exists(cmd):
         FS = 'No'
-        FS_finish = None
     else:
         output = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
         if len(output) > 0:
-            finish_year = output.split(" ")[1].split("-")[0]
-            finish_month = output.split(" ")[1].split("-")[1]
-            finish_day = output.split(" ")[1].split("-")[2]
             FS = 'Yes'
-            FS_finish = finish_year + '/' + finish_month + '/' + finish_day
         else:
             FS = 'No'
-            FS_finish = None
-    return FS, FS_finish
+    return FS
 
 
 def run_post_freesurfer(**args):
@@ -88,20 +71,14 @@ def run_post_freesurfer(**args):
     cmd = "{path}/{subject}/MNINonLinear/fsaverage_LR32k/{subject}.32k_fs_LR.wb.spec"
     cmd = cmd.format(**args)
     if not os.path.exists(cmd):
-        post_FS_finish = None
         post_FS = 'No'
     else:
         output = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
         if len(output) > 0:
-            finish_year = output.split(" ")[1].split("-")[0]
-            finish_month = output.split(" ")[1].split("-")[1]
-            finish_day = output.split(" ")[1].split("-")[2]
-            post_FS_finish = finish_year + '/' + finish_month + '/' + finish_day
             post_FS = 'Yes'
         else:
-            post_FS_finish = None
             post_FS = 'No'
-    return post_FS, post_FS_finish
+    return post_FS
 
 
 def run_generic_fMRI_volume_processsing(**args):
@@ -109,20 +86,14 @@ def run_generic_fMRI_volume_processsing(**args):
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}.nii.gz"
     cmd = cmd.format(**args)
     if not os.path.exists(cmd):
-        volumefMRI_finish = None
         volumefMRI = 'No'
     else:
         output = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
         if len(output) > 0:
-            finish_year = output.split(" ")[1].split("-")[0]
-            finish_month = output.split(" ")[1].split("-")[1]
-            finish_day = output.split(" ")[1].split("-")[2]
-            volumefMRI_finish = finish_year + '/' + finish_month + '/' + finish_day
             volumefMRI = 'Yes'
         else:
-            volumefMRI_finish = None
             volumefMRI = 'No'
-    return volumefMRI, volumefMRI_finish
+    return volumefMRI
 
 
 def run_generic_fMRI_surface_processsing(**args):
@@ -130,25 +101,19 @@ def run_generic_fMRI_surface_processsing(**args):
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas.dtseries.nii"
     cmd = cmd.format(**args)
     if not os.path.exists(cmd):
-        surfacefMRI_finish = None
         surfacefMRI = 'No'
     else:
         output = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
-        if len(output) > 0:
-            finish_year = output.split(" ")[1].split("-")[0]
-            finish_month = output.split(" ")[1].split("-")[1]
-            finish_day = output.split(" ")[1].split("-")[2]
-            surfacefMRI_finish = finish_year + '/' + finish_month + '/' + finish_day
+        if len(output):
             surfacefMRI = 'Yes'
         else:
-            surfacefMRI_finish = None
             surfacefMRI = 'No'
-    return surfacefMRI, surfacefMRI_finish
+    return surfacefMRI
 
 
 def run_ICAFIX_processing(**args):
     args.update(os.environ)
-    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_hp{high_pass}.ica/fix4melview_{training_data}_thr10.txt"
+    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_hp{high_pass}.ica/Atlas.dtseries.nii "
     cmd = cmd.format(**args)
     if not os.path.exists(cmd):
         ICAFIX_finish = None
@@ -156,57 +121,25 @@ def run_ICAFIX_processing(**args):
     else:
         output = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
         if len(output) > 0:
-            finish_year = output.split(" ")[1].split("-")[0]
-            finish_month = output.split(" ")[1].split("-")[1]
-            finish_day = output.split(" ")[1].split("-")[2]
-            ICAFIX_finish = finish_year + '/' + finish_month + '/' + finish_day
             ICAFIX = 'Yes'
         else:
             ICAFIX_finish = None
             ICAFIX = 'No'
-    return ICAFIX, ICAFIX_finish
-
-
-def run_PostFix_processing(**args):
-    args.update(os.environ)
-    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{subject}_{fmriname}_ICA_Classification_singlescreen.scene"
-    cmd = cmd.format(**args)
-    if not os.path.exists(cmd):
-        PostFix_finish = None
-        PostFix = 'No'
-    else:
-        output = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
-        if len(output) > 0:
-            finish_year = output.split(" ")[1].split("-")[0]
-            finish_month = output.split(" ")[1].split("-")[1]
-            finish_day = output.split(" ")[1].split("-")[2]
-            PostFix_finish = finish_year + '/' + finish_month + '/' + finish_day
-            PostFix = 'Yes'
-        else:
-            PostFix_finish = None
-            PostFix = 'No'
-    return PostFix, PostFix_finish
-
+    return ICAFIX
 
 def run_RestingStateStats_processing(**args):
     args.update(os.environ)
-    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas_stats.dscalar.nii"
+    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/RestingStatStats/{fmriname}*.pconn.nii"
     cmd = cmd.format(**args)
     if not os.path.exists(cmd):
-        RSS_finish = None
         RSS = 'No'
     else:
         output = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
         if len(output) > 0:
-            finish_year = output.split(" ")[1].split("-")[0]
-            finish_month = output.split(" ")[1].split("-")[1]
-            finish_day = output.split(" ")[1].split("-")[2]
-            RSS_finish = finish_year + '/' + finish_month + '/' + finish_day
             RSS = 'Yes'
         else:
-            RSS_finish = None
             RSS = 'No'
-    return RSS, RSS_finish
+    return RSS
 
 
 def run_diffusion_processsing(**args):
@@ -214,20 +147,15 @@ def run_diffusion_processsing(**args):
     cmd = "{path}/{subject}/Diffusion/eddy/eddy_unwarped_images.eddy_post_eddy_shell_alignment_parameters"
     cmd = cmd.format(**args)
     if not os.path.exists(cmd):
-        Diffusion_finish = None
         Diffusion = 'No'
     else:
         output = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
         if len(output) > 0:
-            finish_year = output.split(" ")[1].split("-")[0]
-            finish_month = output.split(" ")[1].split("-")[1]
-            finish_day = output.split(" ")[1].split("-")[2]
-            Diffusion_finish = finish_year + '/' + finish_month + '/' + finish_day
             Diffusion = 'Yes'
         else:
-            Diffusion_finish = None
             Diffusion = 'No'
-    return Diffusion, Diffusion_finish
+    return Diffusion
+
 def snapshot(json_file):                                                                                                                                                                                                                                                                      
     with open(json_file, 'r') as f:                                                                           
         data = json.load(f)                                                                                    
@@ -256,34 +184,37 @@ def snapshot(json_file):
                                                                                             
     failed_fMRIs = [str(item) for item in failed_fMRIs]                                       
     failed_structs = [str(item) for item in failed_structs]                                   
-    failed_dMRIs = [str(item) for item in failed_dMRIs]                                       
-    init()                                                                                    
-    pp = pprint.PrettyPrinter(indent = 4)                                                     
-    print(Fore.WHITE + "Total number of scanning sessions: %s" %(session_total))              
-    print                                                                           
-    print(Fore.WHITE + "Structural Preprocessing Summary:")                               
+    failed_dMRIs = [str(item) for item in failed_dMRIs]                                                     
+                                                                                            
     if ii < session_total:                                                                    
-        print(Fore.RED + "%s out of %s session completed correctly" % (ii, session_total))    
-        print(Fore.RED + "The sessions with failed or yet to be run structural prepocessing:")
-        pp.pprint(failed_structs)                                                             
+        sMRI_summary = "%s out of %s session completed correctly. Failed sessions include:" % (ii, session_total)    
+        sMRI_output = sorted(failed_structs)                                                             
     else:                                                                                     
-        print(Fore.LIGHTGREEN_EX + "All sessions have completed structural preprocessing")    
-    print                                                                                     
-    print(Fore.WHITE + "Basic fMRI Preprocessing Summary:")                                   
+        sMRI_summary="All sessions have completed structural preprocessing"
+        sMRI_output = ""                                 
     if jj < fmri_total:                                                                       
-        print(Fore.RED + "%s out of %s fMRI scans completed correctly" %(jj, fmri_total))     
-        print(Fore.RED + "The failed or yet to be run fMRI Scans:")                           
-        pp.pprint(failed_fMRIs)                                                               
+        fMRI_summary= "%s out of %s fMRI scans completed correctly. Failed scans include: " %( jj, fmri_total)                                
+        fMRI_output= sorted(failed_fMRIs)               
     else:                                                                                     
-        print(Fore.LIGHTGREEN_EX + "All fMRI scans completed correctly")                      
-    print(Fore.WHITE + "Diffusion Preprocessing Summary:")                                 
+        fMRI_summary = "All fMRI scans completed correctly"
+        fMRI_output = ""                   
     if kk < session_total:                                                                   
-        print(Fore.RED + "%s out of %s sessions completed correctly" % (kk, session_total))  
-        print(Fore.RED + "The sessions with failed or yet to be run diffusion prepocessing:")
-        pp.pprint(failed_dMRIs)                                                              
+        dMRI_summary = "%s out of %s sessions completed correctly. Failed sessions include: " % (kk, session_total)  
+        dMRI_output = sorted(failed_dMRIs)                                                              
     else:                                                                                    
-        print(Fore.LIGHTGREEN_EX + "All sessions have completed diffusion preprocessing")
-        
+        dMRI_summary = "All dMRI scans completed correctly"
+        dMRI_output = ""
+
+    print("Total number of scanning sessions: %s" %(session_total))     
+    table_data = [
+        ['Structural Preprocessing Summary', 'Basic fMRI Preprocessing Summary', 'Diffusion Preprocessing Summary'],
+        [sMRI_summary, fMRI_summary, dMRI_summary],
+        [sMRI_output, fMRI_output, dMRI_output]
+    ]
+    title = "Study HCP pipeline processing status"
+    table = AsciiTable(table_data, title)
+    table.justify_columns[2] = 'right'
+    print(table.table)        
 
 parser = argparse.ArgumentParser(description='HCP Pipeline status BIDS App (structural, functional MRI, diffusion, resting state).')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
@@ -325,24 +256,14 @@ else:
 data = {}
 session_list = []
 pre_FS_list = []
-pre_FS_finish_list = []
 FS_list = []
-FS_finish_list = []
 post_FS_list = []
-post_FS_finish_list = []
 fmriname_list = []
 volumefMRI_list = []
-volumefMRI_finish_list = []
 surfacefMRI_list = []
-surfacefMRI_finish_list = []
 RestingStateStats_list = []
-RestingStateStats_finish_list = []
 ICAFIX_list = []
-ICAFIX_finish_list = []
-PostFix_list = []
-PostFix_finish_list = []
 Diffusion_list = []
-Diffusion_finish_list = []
 pre_FS_num = 0
 FS_num = 0
 post_FS_num = 0
@@ -351,7 +272,6 @@ rfMRITotal_num = 0
 fMRIVolume_num = 0
 fMRISurface_num = 0
 ICAFIX_num = 0
-PostFix_num = 0
 Diffusion_num = 0
 RestingStateStats_num = 0
 # running participant level
@@ -362,7 +282,7 @@ if args.analysis_level == "participant":
             ses_dirs = glob(os.path.join(args.bids_dir, "sub-" + subject_label, "ses-*"))
             ses_to_analyze = [ses_dir.split("-")[-1] for ses_dir in ses_dirs]
             for ses_label in ses_to_analyze:
-                session_list.append([ses_label])
+                session_list.append(["sub-" + subject_label + "/ses-" + ses_label])
                 struct_stages_dict = OrderedDict([("PreFreeSurfer", partial(run_pre_freesurfer,
                                                                             path=args.output_dir + "/sub-%s" % (
                                                                                 subject_label),
@@ -379,21 +299,18 @@ if args.analysis_level == "participant":
                 for stage, stage_func in struct_stages_dict.iteritems():
                     if stage in args.stages:
                         if stage == "PreFreeSurfer":
-                            pre_FS, pre_FS_finish = stage_func()
+                            pre_FS = stage_func()
                             pre_FS_list.append([pre_FS])
-                            pre_FS_finish_list.append([pre_FS_finish])
                             if pre_FS == 'Yes':
                                 pre_FS_num += 1
                         elif stage == "FreeSurfer":
-                            FS, FS_finish = stage_func()
+                            FS = stage_func()
                             FS_list.append([FS])
-                            FS_finish_list.append([FS_finish])
                             if FS == 'Yes':
                                 FS_num += 1
                         else:
-                            post_FS, post_FS_finish = stage_func()
+                            post_FS= stage_func()
                             post_FS_list.append([post_FS])
-                            post_FS_finish_list.append([post_FS_finish])
                             if post_FS == 'Yes':
                                 post_FS_num += 1
                 bolds = [f.filename for f in layout.get(subject=subject_label, session=ses_label,
@@ -404,15 +321,10 @@ if args.analysis_level == "participant":
 
                 session_fmriname_list = []
                 session_surfacefMRI_list = []
-                session_surfacefMRI_finish_list = []
                 session_volumefMRI_list = []
-                session_volumefMRI_finish_list = []
                 session_RestingStateStats_list = []
-                session_RestingStateStats_finish_list = []
                 session_ICAFIX_list = []
-                session_ICAFIX_finish_list = []
                 session_PostFix_list = []
-                session_PostFix_finish_list = []
 
                 for fmritcs in bolds:
                     fmriname = fmritcs.split("%s/func/" % ses_label)[-1].split(".")[0]
@@ -437,11 +349,6 @@ if args.analysis_level == "participant":
                                                                            fmriname=fmriname,
                                                                            high_pass=highpass,
                                                                            training_data=training_data)),
-                                                        ("PostFix", partial(run_PostFix_processing,
-                                                                            path=args.output_dir + "/sub-%s" % (
-                                                                                subject_label),
-                                                                            subject="ses-%s" % (ses_label),
-                                                                            fmriname=fmriname)),
                                                         ("RestingStateStats", partial(run_RestingStateStats_processing,
                                                                                       path=args.output_dir + "/sub-%s" % subject_label,
                                                                                       subject="ses-%s" % ses_label,
@@ -450,15 +357,13 @@ if args.analysis_level == "participant":
                     for stage, stage_func in func_stages_dict.iteritems():
                         if stage in args.stages:
                             if stage == "fMRIVolume":
-                                volumefMRI, volumefMRI_finish = stage_func()
+                                volumefMRI = stage_func()
                                 session_volumefMRI_list.append(volumefMRI)
-                                session_volumefMRI_finish_list.append(volumefMRI_finish)
                                 if volumefMRI == 'Yes':
                                     fMRIVolume_num += 1
                             else:
-                                surfacefMRI, surfacefMRI_finish = stage_func()
+                                surfacefMRI = stage_func()
                                 session_surfacefMRI_list.append(surfacefMRI)
-                                session_surfacefMRI_finish_list.append(surfacefMRI_finish)
                                 if surfacefMRI == 'Yes':
                                     fMRISurface_num += 1
                             fMRITotal_num += 1
@@ -468,21 +373,13 @@ if args.analysis_level == "participant":
                         for stage, stage_func in rest_stages_dict.iteritems():
                             if stage in args.stages:
                                 if stage == "ICAFIX":
-                                    ICAFIX, ICAFIX_finish = stage_func()
+                                    ICAFIX = stage_func()
                                     session_ICAFIX_list.append(ICAFIX)
-                                    session_ICAFIX_finish_list.append(ICAFIX_finish)
                                     if ICAFIX == 'Yes':
                                         ICAFIX_num += 1
-                                elif stage == "PostFix":
-                                    PostFix, PostFix_finish = stage_func()
-                                    session_PostFix_list.append(PostFix)
-                                    session_PostFix_finish_list.append(PostFix_finish)
-                                    if PostFix == 'Yes':
-                                        PostFix_num += 1
                                 else:
-                                    RSS, RSS_finish = stage_func()
+                                    RSS = stage_func()
                                     session_RestingStateStats_list.append(RSS)
-                                    session_RestingStateStats_finish_list.append(RSS_finish)
                                     if RSS == 'Yes':
                                         RestingStateStats_num += 1
                             rfMRITotal_num += 1
@@ -490,19 +387,9 @@ if args.analysis_level == "participant":
                 fmriname_list.append([session_fmriname_list])
 
                 volumefMRI_list.append([session_volumefMRI_list])
-                volumefMRI_finish_list.append([session_volumefMRI_finish_list])
-
                 surfacefMRI_list.append([session_surfacefMRI_list])
-                surfacefMRI_finish_list.append([session_surfacefMRI_finish_list])
-
                 ICAFIX_list.append([session_ICAFIX_list])
-                ICAFIX_finish_list.append([session_ICAFIX_finish_list])
-
-                PostFix_list.append([session_PostFix_list])
-                PostFix_finish_list.append([session_PostFix_finish_list])
-
                 RestingStateStats_list.append([session_RestingStateStats_list])
-                RestingStateStats_finish_list.append([session_RestingStateStats_finish_list])
 
                 dif_stages_dict = OrderedDict([("DiffusionPreprocessing", partial(run_diffusion_processsing,
                                                                                   path=args.output_dir + "/sub-%s" % (
@@ -510,41 +397,29 @@ if args.analysis_level == "participant":
                                                                                   subject="ses-%s" % (ses_label)))])
                 for stage, stage_func in dif_stages_dict.iteritems():
                     if stage in args.stages:
-                        Diffusion, Diffusion_finish = stage_func()
+                        Diffusion = stage_func()
                         Diffusion_list.append(Diffusion)
-                        Diffusion_finish_list.append(Diffusion_finish)
                         if Diffusion == 'Yes':
                             Diffusion_num += 1
 
     with open(args.output_dir + '/HCP_processing_status.json', 'w') as json_file:
         data.update({"Scanning Sessions": session_list})
         data.update({"PreFreeSurferFinish": pre_FS_list})
-        data.update({"PreFreeSurferFinishDate": pre_FS_finish_list})
         data.update({"PreFreeSurferFinishTotal": pre_FS_num})
         data.update({"FreeSurferFinish": FS_list})
-        data.update({"FreeSurferFinishDate": FS_finish_list})
         data.update({"FreeSurferFinishTotal": FS_num})
         data.update({"PostFreeSurferFinish": post_FS_list})
-        data.update({"PostFreeSurferFinishDate": post_FS_finish_list})
         data.update({"PostFreeSurferFinishTotal": post_FS_num})
         data.update({"fMRINames": fmriname_list})
         data.update({"fMRIVolumeFinish": volumefMRI_list})
-        data.update({"fMRIVolumeFinishDate": volumefMRI_finish_list})
         data.update({"fMRIVolumeFinishTotal": fMRIVolume_num})
         data.update({"fMRISurfaceFinish": surfacefMRI_list})
-        data.update({"fMRISurfaceFinishDate": surfacefMRI_finish_list})
         data.update({"fMRISurfaceFinishTotal": fMRISurface_num})
         data.update({"ICAFIXFinish": ICAFIX_list})
-        data.update({"ICAFIXFinishDate": ICAFIX_finish_list})
         data.update({"ICAFIXFinishTotal": ICAFIX_num})
-        data.update({"PostFixFinish": PostFix_list})
-        data.update({"PostFixFinishDate": PostFix_finish_list})
-        data.update({"PostFixFinishTotal": PostFix_num})
         data.update({"RestingStateStatsFinish": RestingStateStats_list})
-        data.update({"RestingStateStatsFinishDate": RestingStateStats_finish_list})
         data.update({"RestingStateStatsFinishTotal": RestingStateStats_num})
         data.update({"DiffusionPreProcessingFinish": Diffusion_list})
-        data.update({"DiffusionPreProcessingFinishDate": Diffusion_finish_list})
         data.update({"DiffusionPreProcessingTotal": Diffusion_num})
         json.dump(data, json_file)
         os.system("chmod a+rw " +args.output_dir + '/HCP_processing_status.json')
