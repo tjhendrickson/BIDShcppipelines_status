@@ -8,8 +8,8 @@ from bids.grabbids import BIDSLayout
 from subprocess import Popen, PIPE
 from functools import partial
 from collections import OrderedDict
-import json                                                                               
-from terminaltables import AsciiTable 
+import json                                                                           
+import pprint
 
 
 __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -116,15 +116,11 @@ def run_ICAFIX_processing(**args):
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_hp{high_pass}.ica/Atlas.dtseries.nii "
     cmd = cmd.format(**args)
     if not os.path.exists(cmd):
-        ICAFIX_finish = None
         ICAFIX = 'No'
     else:
         output = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
         if len(output) > 0:
             ICAFIX = 'Yes'
-        else:
-            ICAFIX_finish = None
-            ICAFIX = 'No'
     return ICAFIX
 
 def run_RestingStateStats_processing(**args):
@@ -187,34 +183,37 @@ def snapshot(json_file):
     failed_dMRIs = [str(item) for item in failed_dMRIs]                                                     
                                                                                             
     if ii < session_total:                                                                    
-        sMRI_summary = "%s out of %s session completed correctly. Failed sessions include:" % (ii, session_total)    
+        sMRI_summary = "%s out of %s sMRI sessions completed correctly." % (ii, session_total)    
         sMRI_output = sorted(failed_structs)                                                             
     else:                                                                                     
-        sMRI_summary="All sessions have completed structural preprocessing"
+        sMRI_summary="All sMRI sessions have completed structural preprocessing"
         sMRI_output = ""                                 
     if jj < fmri_total:                                                                       
-        fMRI_summary= "%s out of %s fMRI scans completed correctly. Failed scans include: " %( jj, fmri_total)                                
+        fMRI_summary= "%s out of %s fMRI scans completed correctly." %( jj, fmri_total)                                
         fMRI_output= sorted(failed_fMRIs)               
     else:                                                                                     
         fMRI_summary = "All fMRI scans completed correctly"
         fMRI_output = ""                   
     if kk < session_total:                                                                   
-        dMRI_summary = "%s out of %s sessions completed correctly. Failed sessions include: " % (kk, session_total)  
+        dMRI_summary = "%s out of %s dMRI sessions completed correctly." % (kk, session_total)  
         dMRI_output = sorted(failed_dMRIs)                                                              
     else:                                                                                    
         dMRI_summary = "All dMRI scans completed correctly"
         dMRI_output = ""
-
     print("Total number of scanning sessions: %s" %(session_total))     
-    table_data = [
-        ['Structural Preprocessing Summary', 'Basic fMRI Preprocessing Summary', 'Diffusion Preprocessing Summary'],
-        [sMRI_summary, fMRI_summary, dMRI_summary],
-        [sMRI_output, fMRI_output, dMRI_output]
-    ]
-    title = "Study HCP pipeline processing status"
-    table = AsciiTable(table_data, title)
-    table.justify_columns[2] = 'right'
-    print(table.table)        
+    pp = pprint.PrettyPrinter(indent = 4)
+
+    print(sMRI_summary)
+    print("sMRI failures: ")
+    pp.pprint(sMRI_output)
+    print()
+    print(fMRI_summary)
+    print("fMRI failures:")
+    pp.pprint(fMRI_output)
+    print()
+    print(dMRI_summary)
+    print("dMRI failures: ")
+    pp.pprint(dMRI_output)    
 
 parser = argparse.ArgumentParser(description='HCP Pipeline status BIDS App (structural, functional MRI, diffusion, resting state).')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
