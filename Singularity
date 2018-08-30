@@ -4,7 +4,7 @@ From: ubuntu:trusty-20170119
 
 %post
     # Install the validator 0.26.11, along with pybids 0.6.0
-    #mkdir /dev/fuse
+    mkdir /dev/fuse
     chmod 777 /dev/fuse
     apt-get update -qq
     apt-get install -y curl debian-keyring
