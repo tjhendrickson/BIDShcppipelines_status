@@ -168,7 +168,7 @@ def snapshot(json_file):
             ii = ii + 1                                                                                        
         else:                                                                                                  
             failed_structs.append(session_id)                                                                  
-        if data["DiffusionPreProcessingFinish"][ses_counter][0] == 'Yes':                                      
+        if data["DiffusionPreProcessingFinish"][ses_counter] == 'Yes':                                      
             kk = kk + 1                                                                                        
         else:                                                                                                  
             failed_dMRIs.append(session_id)                                                   
