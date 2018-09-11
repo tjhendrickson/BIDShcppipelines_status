@@ -8,6 +8,10 @@ shell scripts) for processing MRI images for the [Human Connectome Project](http
 Among other things, these tools implement the Minimal Preprocessing Pipeline
 (MPP) described in [Glasser et al. 2013](https://www.ncbi.nlm.nih.gov/pubmed/23668970).
 
+### Container Hosting
+This app is maintained on singularityhub [![https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg](https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg)](https://singularity-hub.org/collections/1340). 
+
+
 ### Usage
 This App has the following command line arguments:
 
@@ -27,9 +31,6 @@ positional arguments:
                         according to the BIDS standard.
   output_dir            The directory where the HCP output files are stored.
                         The processing status csv file will be outptted here
-  {participant,group}   Level of the analysis that will be performed. Multiple
-                        participant level analyses can be run independently
-                        (in parallel) using the same output_dir.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -50,19 +51,59 @@ fMRIVolume, fMRISurface, ICAFIX, PostFix, RestingStateStats, and DiffusionPrepro
 ```
 sudo docker run -ti --rm -v /home/timothy/sandbox_DO_NOT_DELETE/BIDS/142_CIFASD_4/BIDS_output:/bids_dir 
 -v /home/timothy/sandbox_DO_NOT_DELETE/BIDS/142_CIFASD_4/HCP_output:/output_dir tjhendrickson/bidshcppipeline_status:v0.1 
-/bids_dir /output_dir participant
+/bids_dir /output_dir
 ```
 Or to run processing status for one participant and one stage:
 ```
 sudo docker run -ti --rm -v /home/timothy/sandbox_DO_NOT_DELETE/BIDS/142_CIFASD_4/BIDS_output:/bids_dir 
 -v /home/timothy/sandbox_DO_NOT_DELETE/BIDS/142_CIFASD_4/HCP_output:/output_dir tjhendrickson/bidshcppipeline_status:v0.1 
-/bids_dir /output_dir participant --participant_label 01 --stages PreFreeSurfer
+/bids_dir /output_dir --participant_label 01 --stages PreFreeSurfer
 ```
 
 ### Output
 No matter what is run (either every stage or just one) a JSON file (JavaScript Object Notation) named 
 'HCP_processing_status.json' will be outputted to the 'output_dir' folder/directory location specified. 
-If all stages are specified the following keys will be generated: 
+
+For a quick review information will be outputted directly to the terminal about the status of structural, fMRI, and dMRI preprocessing.
+Here is an example output:
+```
+Total number of scanning sessions: 18
+
+17 out of 18 sMRI sessions completed correctly.
+sMRI failures: 
+["[u'sub-8630/ses-51251']"]
+
+15 out of 18 fMRI scans completed correctly.
+fMRI failures:
+[   'sub-8464_ses-50907_task-rest_run-01_bold',
+    'sub-8630_ses-51218_task-rest_run-01_bold',
+    'sub-8630_ses-51251_task-rest_run-01_bold']
+
+0 out of 18 dMRI sessions completed correctly.
+dMRI failures: 
+[   "[u'sub-8305/ses-50289']",
+    "[u'sub-8388/ses-50527']",
+    "[u'sub-8388/ses-50592']",
+    "[u'sub-8388/ses-50601']",
+    "[u'sub-8408/ses-50627']",
+    "[u'sub-8408/ses-50639']",
+    "[u'sub-8443/ses-50826']",
+    "[u'sub-8443/ses-50827']",
+    "[u'sub-8443/ses-50848']",
+    "[u'sub-8454/ses-50865']",
+    "[u'sub-8454/ses-50892']",
+    "[u'sub-8454/ses-50941']",
+    "[u'sub-8464/ses-50879']",
+    "[u'sub-8464/ses-50907']",
+    "[u'sub-8464/ses-50950']",
+    "[u'sub-8630/ses-51218']",
+    "[u'sub-8630/ses-51251']",
+    "[u'sub-8630/ses-51276']"]
+```
+
+
+For more verbose output here are all the keys generated within JSON file:
+
 ```
 Scanning Sessions: number of participants with scans
 
@@ -117,23 +158,6 @@ Type "help", "copyright", "credits" or "license" for more information.
 ...     datasource = json.load(f)
 >>> print datastore["key you want to search"]
 ```
-
-### Docker to Singularity Image Conversion
-
-To convert docker image to singularity you will need:
-1) A system with docker 
-2) The docker image on that system (i.e. 'docker pull name/of/docker/image')
-3) The docker image docker2singularity on that system ('docker pull docker2singularity')
-
-And the command: 
-```
-  docker run --privileged -ti --rm  \
-      -v /var/run/docker.sock:/var/run/docker.sock \
-      -v /path/to/singularity/images/directory:/output \
-      singularityware/docker2singularity \
-      name/of/docker/image
-```
-
 
 
 
