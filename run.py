@@ -8,7 +8,7 @@ from bids.grabbids import BIDSLayout
 from subprocess import Popen, PIPE
 from functools import partial
 from collections import OrderedDict
-import json                                                                           
+import json
 import pprint
 
 
@@ -50,7 +50,7 @@ def run_pre_freesurfer(**args):
 
 
 def run_freesurfer(**args):
-    
+
     args.update(os.environ)
     args["subjectDIR"] = os.path.join(args["path"], args["subject"], "T1w")
     cmd = "{subjectDIR}/{subject}/scripts/recon-all.log"
@@ -113,7 +113,7 @@ def run_generic_fMRI_surface_processsing(**args):
 
 def run_ICAFIX_processing(**args):
     args.update(os.environ)
-    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_hp{high_pass}.ica/Atlas.dtseries.nii "
+    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_Atlas_hp{high_pass}_clean.dtseries.nii "
     cmd = cmd.format(**args)
     if not os.path.exists(cmd):
         ICAFIX = 'No'
@@ -127,10 +127,11 @@ def run_RestingStateStats_processing(**args):
     args.update(os.environ)
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/RestingStatStats/{fmriname}*.pconn.nii"
     cmd = cmd.format(**args)
-    if not os.path.exists(cmd):
+    cmd = glob(cmd)
+    if not cmd:
         RSS = 'No'
     else:
-        output = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
+        output = subprocess.check_output("stat " + cmd[0] + "| grep 'Modify' ", shell=True)
         if len(output) > 0:
             RSS = 'Yes'
         else:
@@ -152,55 +153,55 @@ def run_diffusion_processsing(**args):
             Diffusion = 'No'
     return Diffusion
 
-def snapshot(json_file):                                                                                                                                                                                                                                                                      
-    with open(json_file, 'r') as f:                                                                           
-        data = json.load(f)                                                                                    
-    ii=0                                                                                                       
-    jj=0             
-    kk=0                                                                                                       
-    session_total = len(data["Scanning Sessions"])                                                             
+def snapshot(json_file):
+    with open(json_file, 'r') as f:
+        data = json.load(f)
+    ii=0
+    jj=0
+    kk=0
+    session_total = len(data["Scanning Sessions"])
     fmri_total = len([ item for sublist in data["fMRINames"] for subsublist in sublist for item in subsublist])
-    failed_structs = []                                                                                        
-    failed_fMRIs = []                                                                                          
-    failed_dMRIs = []                                                                                          
-    for ses_counter, session_id in enumerate(data["Scanning Sessions"]):                                       
-        if data["PostFreeSurferFinish"][ses_counter][0] == 'Yes':                                              
-            ii = ii + 1                                                                                        
-        else:                                                                                                  
-            failed_structs.append(session_id)                                                                  
-        if data["DiffusionPreProcessingFinish"][ses_counter] == 'Yes':                                      
-            kk = kk + 1                                                                                        
-        else:                                                                                                  
-            failed_dMRIs.append(session_id)                                                   
+    failed_structs = []
+    failed_fMRIs = []
+    failed_dMRIs = []
+    for ses_counter, session_id in enumerate(data["Scanning Sessions"]):
+        if data["PostFreeSurferFinish"][ses_counter][0] == 'Yes':
+            ii = ii + 1
+        else:
+            failed_structs.append(session_id)
+        if data["DiffusionPreProcessingFinish"][ses_counter] == 'Yes':
+            kk = kk + 1
+        else:
+            failed_dMRIs.append(session_id)
         for fMRI_counter, fMRI_status in enumerate(data["fMRISurfaceFinish"][ses_counter][0]):
-            if fMRI_status == 'Yes':                                                          
-                jj = jj + 1                                                                   
-            else:                                                                             
-                failed_fMRIs.append(data["fMRINames"][ses_counter][0][fMRI_counter])          
-                                                                                            
-    failed_fMRIs = [str(item) for item in failed_fMRIs]                                       
-    failed_structs = [str(item) for item in failed_structs]                                   
-    failed_dMRIs = [str(item) for item in failed_dMRIs]                                                     
-                                                                                            
-    if ii < session_total:                                                                    
-        sMRI_summary = "%s out of %s sMRI sessions completed correctly." % (ii, session_total)    
-        sMRI_output = sorted(failed_structs)                                                             
-    else:                                                                                     
+            if fMRI_status == 'Yes':
+                jj = jj + 1
+            else:
+                failed_fMRIs.append(data["fMRINames"][ses_counter][0][fMRI_counter])
+
+    failed_fMRIs = [str(item) for item in failed_fMRIs]
+    failed_structs = [str(item) for item in failed_structs]
+    failed_dMRIs = [str(item) for item in failed_dMRIs]
+
+    if ii < session_total:
+        sMRI_summary = "%s out of %s sMRI sessions completed correctly." % (ii, session_total)
+        sMRI_output = sorted(failed_structs)
+    else:
         sMRI_summary="All sMRI sessions have completed structural preprocessing"
-        sMRI_output = ""                                 
-    if jj < fmri_total:                                                                       
-        fMRI_summary= "%s out of %s fMRI scans completed correctly." %( jj, fmri_total)                                
-        fMRI_output= sorted(failed_fMRIs)               
-    else:                                                                                     
+        sMRI_output = ""
+    if jj < fmri_total:
+        fMRI_summary= "%s out of %s fMRI scans completed correctly." %( jj, fmri_total)
+        fMRI_output= sorted(failed_fMRIs)
+    else:
         fMRI_summary = "All fMRI scans completed correctly"
-        fMRI_output = ""                   
-    if kk < session_total:                                                                   
-        dMRI_summary = "%s out of %s dMRI sessions completed correctly." % (kk, session_total)  
-        dMRI_output = sorted(failed_dMRIs)                                                              
-    else:                                                                                    
+        fMRI_output = ""
+    if kk < session_total:
+        dMRI_summary = "%s out of %s dMRI sessions completed correctly." % (kk, session_total)
+        dMRI_output = sorted(failed_dMRIs)
+    else:
         dMRI_summary = "All dMRI scans completed correctly"
         dMRI_output = ""
-    print("Total number of scanning sessions: %s" %(session_total))     
+    print("Total number of scanning sessions: %s" %(session_total))
     pp = pprint.PrettyPrinter(indent = 4)
     print()
     print(sMRI_summary)
@@ -213,7 +214,7 @@ def snapshot(json_file):
     print()
     print(dMRI_summary)
     print("dMRI failures: ")
-    pp.pprint(dMRI_output)    
+    pp.pprint(dMRI_output)
 
 parser = argparse.ArgumentParser(description='HCP Pipeline status BIDS App (structural, functional MRI, diffusion, resting state).')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
