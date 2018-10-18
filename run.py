@@ -50,7 +50,6 @@ def run_pre_freesurfer(**args):
 
 
 def run_freesurfer(**args):
-
     args.update(os.environ)
     args["subjectDIR"] = os.path.join(args["path"], args["subject"], "T1w")
     cmd = "{subjectDIR}/{subject}/scripts/recon-all.log"
@@ -123,6 +122,18 @@ def run_ICAFIX_processing(**args):
             ICAFIX = 'Yes'
     return ICAFIX
 
+def run_MSMAll_processing(**args):
+    args.update(os.environ)
+    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{fmriname}_{MSMAll_name}_hp{high_pass}_clean.dtseries.nii"
+    cmd = cmd.format(**args)
+    if not os.path.exists(cmd):
+        MSMAll = 'No'
+    else:
+        output = subprocess.check_output("stat " + cmd + "| grep 'Modify' ", shell=True)
+        if len(output) > 0:
+            MSMAll = 'Yes'
+    return MSMAll
+
 def run_RestingStateStats_processing(**args):
     args.update(os.environ)
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/RestingStatStats/{fmriname}*.pconn.nii"
@@ -137,6 +148,18 @@ def run_RestingStateStats_processing(**args):
         else:
             RSS = 'No'
     return RSS
+
+def run_TaskfMRIAnalysis_processing(**args):
+    args.update(os.environ)
+
+    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{shortfmriname}*.feat"
+    cmd = cmd.format(**args)
+    cmd = glob(cmd)
+    if not cmd:
+        TaskfMRI = 'No'
+    else:
+        TaskfMRI = 'Yes'
+    return TaskfMRI
 
 
 def run_diffusion_processsing(**args):
@@ -246,7 +269,7 @@ if args.participant_label:
     subjects_to_analyze = args.participant_label
 # for all subjects
 else:
-    subject_dirs = glob(os.path.join(args.output_dir, "sub-*"))
+    subject_dirs = glob(os.path.join(args.bids_dir, "sub-*"))
     subjects_to_analyze = [subject_dir.split("-")[-1] for subject_dir in subject_dirs]
 
 data = {}
@@ -259,6 +282,7 @@ volumefMRI_list = []
 surfacefMRI_list = []
 RestingStateStats_list = []
 ICAFIX_list = []
+MSMAll_lis = []
 Diffusion_list = []
 pre_FS_num = 0
 FS_num = 0
@@ -268,6 +292,7 @@ rfMRITotal_num = 0
 fMRIVolume_num = 0
 fMRISurface_num = 0
 ICAFIX_num = 0
+MSMAll_num = 0
 Diffusion_num = 0
 RestingStateStats_num = 0
 
@@ -313,12 +338,14 @@ for subject_label in subjects_to_analyze:
                                                     extensions=["nii.gz", "nii"])]
             highpass = "2000"
             training_data = "HCP_hp2000"
+            MSMAll_name = "Atlas_MSMAll_2_d40_WRN"
 
             session_fmriname_list = []
             session_surfacefMRI_list = []
             session_volumefMRI_list = []
             session_RestingStateStats_list = []
             session_ICAFIX_list = []
+            session_MSMAll_list = []
             session_PostFix_list = []
 
             for fmritcs in bolds:
@@ -335,19 +362,32 @@ for subject_label in subjects_to_analyze:
                                                                         path=args.output_dir + "/sub-%s" % (
                                                                             subject_label),
                                                                         subject="ses-%s" % (ses_label),
-                                                                        fmriname=fmriname))])
-                if 'rest' in fmriname:
-                    rest_stages_dict = OrderedDict([("ICAFIX", partial(run_ICAFIX_processing,
+                                                                        fmriname=fmriname)),
+                                                ("ICAFIX", partial(run_ICAFIX_processing,
                                                                         path=args.output_dir + "/sub-%s" % (
                                                                             subject_label),
                                                                         subject="ses-%s" % (ses_label),
                                                                         fmriname=fmriname,
                                                                         high_pass=highpass,
                                                                         training_data=training_data)),
-                                                    ("RestingStateStats", partial(run_RestingStateStats_processing,
+                                                ("MSMAll", partial(run_MSMAll_processing,
+                                                                   path=args.output_dir + "/sub-%s" % (subject_label),
+                                                                   subject="ses-%s" %(ses_label),
+                                                                   fmriname=fmriname,
+                                                                   high_pass=highpass,
+                                                                   MSMAll_name=MSMAll_name))])
+                if 'rest' in fmriname:
+                    rest_stages_dict = OrderedDict([("RestingStateStats", partial(run_RestingStateStats_processing,
                                                                                     path=args.output_dir + "/sub-%s" % subject_label,
                                                                                     subject="ses-%s" % ses_label,
                                                                                     fmriname=fmriname))])
+                else:
+                    shortfmriname = fmriname.split("_")[2].split("-")[1]
+                    task_stages_dict = OrderedDict([("TaskfMRIAnalysis", partial(run_TaskfMRIAnalysis_processing,
+                                                                                    path=args.output_dir + "/sub-%s" % subject_label,
+                                                                                    subject="ses-%s" % ses_label,
+                                                                                    fmriname=fmriname,
+                                                                                    shortfmriname=shortfmriname))])
                 # TODO: finish task fMRI portion
                 for stage, stage_func in func_stages_dict.iteritems():
                     if stage in args.stages:
