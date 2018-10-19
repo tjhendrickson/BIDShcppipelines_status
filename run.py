@@ -10,6 +10,7 @@ from functools import partial
 from collections import OrderedDict
 import json
 import pprint
+import pdb
 
 
 __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -151,15 +152,14 @@ def run_RestingStateStats_processing(**args):
 
 def run_TaskfMRIAnalysis_processing(**args):
     args.update(os.environ)
-
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{shortfmriname}*.feat"
     cmd = cmd.format(**args)
     cmd = glob(cmd)
     if not cmd:
-        TaskfMRI = 'No'
+        tfMRI = 'No'
     else:
-        TaskfMRI = 'Yes'
-    return TaskfMRI
+        tfMRI = 'Yes'
+    return tfMRI
 
 
 def run_diffusion_processsing(**args):
@@ -182,16 +182,23 @@ def snapshot(json_file):
     ii=0
     jj=0
     kk=0
+    ll=0
+    mm=0
     session_total = len(data["Scanning Sessions"])
+    pdb.set_trace()
     fmri_total = len([ item for sublist in data["fMRINames"] for subsublist in sublist for item in subsublist])
-    failed_structs = []
+    rsfMRI_total = len([ item for sublist in data["fMRINames"] for subsublist in sublist for item in subsublist if 'rest' == item.split("task-")[1].split("_")[0]])
+    tfMRI_total = fmri_total - rsfMRI_total
+    failed_sMRIs = []
     failed_fMRIs = []
     failed_dMRIs = []
+    failed_rsfMRI = []
+    failed_tfMRI = []
     for ses_counter, session_id in enumerate(data["Scanning Sessions"]):
         if data["PostFreeSurferFinish"][ses_counter][0] == 'Yes':
             ii = ii + 1
         else:
-            failed_structs.append(session_id)
+            failed_sMRIs.append(session_id)
         if data["DiffusionPreProcessingFinish"][ses_counter] == 'Yes':
             kk = kk + 1
         else:
@@ -201,29 +208,53 @@ def snapshot(json_file):
                 jj = jj + 1
             else:
                 failed_fMRIs.append(data["fMRINames"][ses_counter][0][fMRI_counter])
+        for RSS_counter, RSS_status in enumerate(data["RestingStateStatsFinish"][ses_counter][0]):
+            if RSS_status == 'Yes':
+                ll = ll + 1
+            else:
+                failed_rsfMRI.append(data["fMRINames"][ses_counter][0][RSS_counter])
+        for tfMRI_counter, tfMRI_status in enumerate(data["TaskfMRIAnalysisFinish"][ses_counter][0]):
+            if tfMRI_status == 'Yes':
+                mm = mm + 1
+            else:
+                failed_tfMRI.append(data["fMRINames"][ses_counter][0][tfMRI_counter])
 
     failed_fMRIs = [str(item) for item in failed_fMRIs]
-    failed_structs = [str(item) for item in failed_structs]
+    failed_sMRIs = [str(item) for item in failed_sMRIs]
     failed_dMRIs = [str(item) for item in failed_dMRIs]
+    failed_rsfMRI = [str(item) for item in failed_rsfMRI]
+    failed_tfMRI = [str(item) for item in failed_tfMRI]
 
     if ii < session_total:
-        sMRI_summary = "%s out of %s sMRI sessions completed correctly." % (ii, session_total)
-        sMRI_output = sorted(failed_structs)
+        sMRI_summary = "%s out of %s sMRI sessions completed." % (ii, session_total)
+        sMRI_output = sorted(failed_sMRIs)
     else:
         sMRI_summary="All sMRI sessions have completed structural preprocessing"
         sMRI_output = ""
     if jj < fmri_total:
-        fMRI_summary= "%s out of %s fMRI scans completed correctly." %( jj, fmri_total)
+        fMRI_summary= "%s out of %s fMRI scans completed." %( jj, fmri_total)
         fMRI_output= sorted(failed_fMRIs)
     else:
-        fMRI_summary = "All fMRI scans completed correctly"
+        fMRI_summary = "All fMRI scans completed."
         fMRI_output = ""
     if kk < session_total:
-        dMRI_summary = "%s out of %s dMRI sessions completed correctly." % (kk, session_total)
+        dMRI_summary = "%s out of %s dMRI sessions completed." % (kk, session_total)
         dMRI_output = sorted(failed_dMRIs)
     else:
-        dMRI_summary = "All dMRI scans completed correctly"
+        dMRI_summary = "All dMRI scans completed"
         dMRI_output = ""
+    if ll < rsfMRI_total:
+        rsfMRI_summary = "%s out of %s rsfMRI sessions completed processing." % (ll, rsfMRI_total)
+        rsfMRI_output = sorted(failed_rsfMRI)
+    else:
+        rsfMRI_summary = "All rsfMRI processing completed"
+        rsfMRI_output = ""
+    if mm < tfMRI_total:
+        tfMRI_summary = "%s out of %s tfMRI sessions completed first level processing." % (mm, tfMRI_total)
+        tfMRI_output = sorted(failed_tfMRI)
+    else:
+        tfMRI_summary = "All tfMRI first level processing completed."
+        tfMRI_output = ""
     print("Total number of scanning sessions: %s" %(session_total))
     pp = pprint.PrettyPrinter(indent = 4)
     print()
@@ -235,6 +266,14 @@ def snapshot(json_file):
     print("fMRI failures:")
     pp.pprint(fMRI_output)
     print()
+    print(rsfMRI_summary)
+    print("rsfMRI processing failures:")
+    pp.pprint(rsfMRI_output)
+    print()
+    print(tfMRI_summary)
+    print("tfMRI processing failures:")
+    pp.pprint(tfMRI_output)
+    print()
     print(dMRI_summary)
     print("dMRI failures: ")
     pp.pprint(dMRI_output)
@@ -244,19 +283,20 @@ parser.add_argument('bids_dir', help='The directory with the input dataset '
                     'formatted according to the BIDS standard.')
 parser.add_argument('output_dir', help='The directory where the HCP output files are stored. '
                     'The processing status csv file will be outptted here')
-parser.add_argument('--participant_label', help='The label(s) of the participant(s) that should be analyzed. The label '
+parser.add_argument('--participant_label', 
+                    help='The label(s) of the participant(s) that should be analyzed. The label '
                    'corresponds to sub-<participant_label> from the BIDS spec '
                    '(so it does not include "sub-"). If this parameter is not '
                    'provided all subjects should be analyzed. Multiple '
                    'participants can be specified with a space separated list.',
                    nargs="+")
-parser.add_argument('--stages', help='Which stages to run. Space separated list.',
-                   nargs="+", choices=['PreFreeSurfer', 'FreeSurfer',
-                                       'PostFreeSurfer', 'fMRIVolume',
-                                       'fMRISurface', 'ICAFIX', 'PostFix', 'RestingStateStats', 'DiffusionPreprocessing'],
-                   default=['PreFreeSurfer', 'FreeSurfer', 'PostFreeSurfer',
-                            'fMRIVolume', 'fMRISurface', 'ICAFIX', 'PostFix', 'RestingStateStats',
-                            'DiffusionPreprocessing'])
+parser.add_argument('--stages', 
+                   help='Which stages to run. Space separated list.',
+                   nargs="+", 
+                   choices=['PreFreeSurfer', 'FreeSurfer', 'PostFreeSurfer', 'fMRIVolume', 
+                   'fMRISurface', 'ICAFIX', 'RestingStateStats', 'DiffusionPreprocessing', 'MSMAll', 'TaskfMRIAnalysis'],
+                   default=['PreFreeSurfer', 'FreeSurfer', 'PostFreeSurfer','fMRIVolume', 
+                   'fMRISurface', 'ICAFIX', 'RestingStateStats', 'DiffusionPreprocessing', 'MSMAll', 'TaskfMRIAnalysis'])
 parser.add_argument('-v', '--version', action='version',
                     version='HCPPipeline Status {}'.format(__version__))
 
@@ -273,6 +313,7 @@ else:
     subjects_to_analyze = [subject_dir.split("-")[-1] for subject_dir in subject_dirs]
 
 data = {}
+
 session_list = []
 pre_FS_list = []
 FS_list = []
@@ -282,17 +323,21 @@ volumefMRI_list = []
 surfacefMRI_list = []
 RestingStateStats_list = []
 ICAFIX_list = []
-MSMAll_lis = []
+MSMAll_list = []
+tfMRI_list = []
 Diffusion_list = []
+
 pre_FS_num = 0
 FS_num = 0
 post_FS_num = 0
 fMRITotal_num = 0
 rfMRITotal_num = 0
+tfMRITotal_num = 0
 fMRIVolume_num = 0
 fMRISurface_num = 0
 ICAFIX_num = 0
 MSMAll_num = 0
+tfMRI_num = 0
 Diffusion_num = 0
 RestingStateStats_num = 0
 
@@ -333,6 +378,7 @@ for subject_label in subjects_to_analyze:
                         post_FS_list.append([post_FS])
                         if post_FS == 'Yes':
                             post_FS_num += 1
+            
             bolds = [f.filename for f in layout.get(subject=subject_label, session=ses_label,
                                                     type='bold',
                                                     extensions=["nii.gz", "nii"])]
@@ -346,26 +392,23 @@ for subject_label in subjects_to_analyze:
             session_RestingStateStats_list = []
             session_ICAFIX_list = []
             session_MSMAll_list = []
-            session_PostFix_list = []
+            session_tfMRI_list = []
 
             for fmritcs in bolds:
                 fmriname = fmritcs.split("%s/func/" % ses_label)[-1].split(".")[0]
                 assert fmriname
                 session_fmriname_list.append(fmriname)
-
+                fMRITotal_num += 1
                 func_stages_dict = OrderedDict([("fMRIVolume", partial(run_generic_fMRI_volume_processsing,
-                                                                        path=args.output_dir + "/sub-%s" % (
-                                                                            subject_label),
+                                                                        path=args.output_dir + "/sub-%s" % (subject_label),
                                                                         subject="ses-%s" % (ses_label),
                                                                         fmriname=fmriname)),
                                                 ("fMRISurface", partial(run_generic_fMRI_surface_processsing,
-                                                                        path=args.output_dir + "/sub-%s" % (
-                                                                            subject_label),
+                                                                        path=args.output_dir + "/sub-%s" % (subject_label),
                                                                         subject="ses-%s" % (ses_label),
                                                                         fmriname=fmriname)),
                                                 ("ICAFIX", partial(run_ICAFIX_processing,
-                                                                        path=args.output_dir + "/sub-%s" % (
-                                                                            subject_label),
+                                                                        path=args.output_dir + "/sub-%s" % (subject_label),
                                                                         subject="ses-%s" % (ses_label),
                                                                         fmriname=fmriname,
                                                                         high_pass=highpass,
@@ -383,12 +426,12 @@ for subject_label in subjects_to_analyze:
                                                                                     fmriname=fmriname))])
                 else:
                     shortfmriname = fmriname.split("_")[2].split("-")[1]
-                    task_stages_dict = OrderedDict([("TaskfMRIAnalysis", partial(run_TaskfMRIAnalysis_processing,
+                    task_stages_dict = OrderedDict([("tfMRIAnalysis", partial(run_TaskfMRIAnalysis_processing,
                                                                                     path=args.output_dir + "/sub-%s" % subject_label,
                                                                                     subject="ses-%s" % ses_label,
                                                                                     fmriname=fmriname,
                                                                                     shortfmriname=shortfmriname))])
-                # TODO: finish task fMRI portion
+                
                 for stage, stage_func in func_stages_dict.iteritems():
                     if stage in args.stages:
                         if stage == "fMRIVolume":
@@ -396,35 +439,48 @@ for subject_label in subjects_to_analyze:
                             session_volumefMRI_list.append(volumefMRI)
                             if volumefMRI == 'Yes':
                                 fMRIVolume_num += 1
-                        else:
+                        elif stage == 'sMRIVolume':
                             surfacefMRI = stage_func()
                             session_surfacefMRI_list.append(surfacefMRI)
                             if surfacefMRI == 'Yes':
                                 fMRISurface_num += 1
-                        fMRITotal_num += 1
-
+                        elif stage == 'ICAFIX':
+                            ICAFIX = stage_func()
+                            session_ICAFIX_list.append(ICAFIX)
+                            if ICAFIX == 'Yes':
+                                ICAFIX_num += 1
+                        elif stage == 'MSMAll':
+                            MSMAll = stage_func()
+                            session_MSMAll_list.append(MSMAll)
+                            if MSMAll == 'Yes':
+                                MSMAll_num += 1
 
                 if 'rest' in fmriname:
                     for stage, stage_func in rest_stages_dict.iteritems():
                         if stage in args.stages:
-                            if stage == "ICAFIX":
-                                ICAFIX = stage_func()
-                                session_ICAFIX_list.append(ICAFIX)
-                                if ICAFIX == 'Yes':
-                                    ICAFIX_num += 1
-                            else:
+                            if stage == 'RestingStateStats':
                                 RSS = stage_func()
                                 session_RestingStateStats_list.append(RSS)
                                 if RSS == 'Yes':
                                     RestingStateStats_num += 1
                         rfMRITotal_num += 1
+                else:
+                    for stage, stage_func in task_stages_dict.iteritems():
+                        if stage in args.stages:
+                            if stage == 'TaskfMRIAnalysis':
+                                tfMRI = stage_func()
+                                session_tfMRI_list.append(tfMRI)
+                                if tfMRI == 'Yes':
+                                    tfMRI_num += 1
+                        tfMRITotal_num += 1
 
             fmriname_list.append([session_fmriname_list])
-
             volumefMRI_list.append([session_volumefMRI_list])
             surfacefMRI_list.append([session_surfacefMRI_list])
             ICAFIX_list.append([session_ICAFIX_list])
             RestingStateStats_list.append([session_RestingStateStats_list])
+            MSMAll_list.append([session_MSMAll_list])
+            tfMRI_list.append([session_tfMRI_list])
 
             dif_stages_dict = OrderedDict([("DiffusionPreprocessing", partial(run_diffusion_processsing,
                                                                                 path=args.output_dir + "/sub-%s" % (
@@ -452,8 +508,12 @@ with open(args.output_dir + '/HCP_processing_status.json', 'w') as json_file:
     data.update({"fMRISurfaceFinishTotal": fMRISurface_num})
     data.update({"ICAFIXFinish": ICAFIX_list})
     data.update({"ICAFIXFinishTotal": ICAFIX_num})
+    data.update({"MSMAllFinish": MSMAll_list})
+    data.update({"MSMAllFinishTotal": MSMAll_num})
     data.update({"RestingStateStatsFinish": RestingStateStats_list})
     data.update({"RestingStateStatsFinishTotal": RestingStateStats_num})
+    data.update({"TaskfMRIAnalysisFinish": tfMRI_list})
+    data.update({"TaskfMRIAnalysisFinishTotal": tfMRI_num})
     data.update({"DiffusionPreProcessingFinish": Diffusion_list})
     data.update({"DiffusionPreProcessingTotal": Diffusion_num})
     json.dump(data, json_file)
