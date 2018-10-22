@@ -137,7 +137,6 @@ def run_MSMAll_processing(**args):
 
 def run_RestingStateStats_processing(**args):
     args.update(os.environ)
-    pdb.set_trace()
     cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/RestingStateStats/{fmriname}*.pconn.nii"
     cmd = cmd.format(**args)
     cmd = glob(cmd)
