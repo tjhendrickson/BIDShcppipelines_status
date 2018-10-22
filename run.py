@@ -185,7 +185,6 @@ def snapshot(json_file):
     ll=0
     mm=0
     session_total = len(data["Scanning Sessions"])
-    pdb.set_trace()
     fmri_total = len([ item for sublist in data["fMRINames"] for subsublist in sublist for item in subsublist])
     rsfMRI_total = len([ item for sublist in data["fMRINames"] for subsublist in sublist for item in subsublist if 'rest' == item.split("task-")[1].split("_")[0]])
     tfMRI_total = fmri_total - rsfMRI_total
