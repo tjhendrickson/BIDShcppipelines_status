@@ -188,7 +188,7 @@ def snapshot(json_file):
     fmri_total = len([ item for sublist in data["fMRINames"] for subsublist in sublist for item in subsublist])
     rsfMRI_total = len([ item for sublist in data["fMRINames"] for subsublist in sublist for item in subsublist if 'rest' == item.split("task-")[1].split("_")[0]])
     tfMRI_total = fmri_total - rsfMRI_total
-    pdb.set_trace()
+    
     failed_sMRIs = []
     failed_fMRIs = []
     failed_dMRIs = []
@@ -212,14 +212,12 @@ def snapshot(json_file):
             if RSS_status == 'Yes':
                 ll = ll + 1
             else:
-		if 'rest' in data["fMRINames"][ses_counter][0][RSS_counter]:
-	                failed_rsfMRI.append(data["fMRINames"][ses_counter][0][RSS_counter])
+                failed_rsfMRI.append(data["fMRINames"][ses_counter][0][RSS_counter])
         for tfMRI_counter, tfMRI_status in enumerate(data["TaskfMRIAnalysisFinish"][ses_counter][0]):
             if tfMRI_status == 'Yes':
                 mm = mm + 1
             else:
-		if not 'rest' in data["fMRINames"][ses_counter][0][tfMRI_counter]:
-	                failed_tfMRI.append(data["fMRINames"][ses_counter][0][tfMRI_counter])
+                failed_tfMRI.append(data["fMRINames"][ses_counter][0][tfMRI_counter])
 
     failed_fMRIs = [str(item) for item in failed_fMRIs]
     failed_sMRIs = [str(item) for item in failed_sMRIs]
@@ -401,7 +399,6 @@ for subject_label in subjects_to_analyze:
                 assert fmriname
                 session_fmriname_list.append(fmriname)
                 fMRITotal_num += 1
-		shortfmriname = fmriname.split("_")[2].split("-")[1]
                 func_stages_dict = OrderedDict([("fMRIVolume", partial(run_generic_fMRI_volume_processsing,
                                                                         path=args.output_dir + "/sub-%s" % (subject_label),
                                                                         subject="ses-%s" % (ses_label),
@@ -421,16 +418,19 @@ for subject_label in subjects_to_analyze:
                                                                    subject="ses-%s" %(ses_label),
                                                                    fmriname=fmriname,
                                                                    high_pass=highpass,
-                                                                   MSMAll_name=MSMAll_name)),
-                				("RestingStateStats", partial(run_RestingStateStats_processing,
-                                                                   path=args.output_dir + "/sub-%s" % subject_label,
-                                                                   subject="ses-%s" % ses_label,
-                                                                   fmriname=fmriname)),
-                    				("TaskfMRIAnalysis", partial(run_TaskfMRIAnalysis_processing,
-                                                                   path=args.output_dir + "/sub-%s" % subject_label,
-                                                                   subject="ses-%s" % ses_label,
-                                                                   fmriname=fmriname,
-                                                                   shortfmriname=shortfmriname))])
+                                                                   MSMAll_name=MSMAll_name))])
+                if 'rest' in fmriname:
+                    rest_stages_dict = OrderedDict([("RestingStateStats", partial(run_RestingStateStats_processing,
+                                                                                    path=args.output_dir + "/sub-%s" % subject_label,
+                                                                                    subject="ses-%s" % ses_label,
+                                                                                    fmriname=fmriname))])
+                else:
+                    shortfmriname = fmriname.split("_")[2].split("-")[1]
+                    task_stages_dict = OrderedDict([("tfMRIAnalysis", partial(run_TaskfMRIAnalysis_processing,
+                                                                                    path=args.output_dir + "/sub-%s" % subject_label,
+                                                                                    subject="ses-%s" % ses_label,
+                                                                                    fmriname=fmriname,
+                                                                                    shortfmriname=shortfmriname))])
                 
                 for stage, stage_func in func_stages_dict.iteritems():
                     if stage in args.stages:
@@ -454,18 +454,25 @@ for subject_label in subjects_to_analyze:
                             session_MSMAll_list.append(MSMAll)
                             if MSMAll == 'Yes':
                                 MSMAll_num += 1
-                        elif stage == 'RestingStateStats':
-                             RSS = stage_func()
-                             session_RestingStateStats_list.append(RSS)
-                             if RSS == 'Yes':
-                                 RestingStateStats_num += 1
-                                 rfMRITotal_num += 1
-                        elif stage == 'TaskfMRIAnalysis':
-                             tfMRI = stage_func()
-                             session_tfMRI_list.append(tfMRI)
-                             if tfMRI == 'Yes':
-                                tfMRI_num += 1
-                        	tfMRITotal_num += 1
+
+                if 'rest' in fmriname:
+                    for stage, stage_func in rest_stages_dict.iteritems():
+                        if stage in args.stages:
+                            if stage == 'RestingStateStats':
+                                RSS = stage_func()
+                                session_RestingStateStats_list.append(RSS)
+                                if RSS == 'Yes':
+                                    RestingStateStats_num += 1
+                        rfMRITotal_num += 1
+                else:
+                    for stage, stage_func in task_stages_dict.iteritems():
+                        if stage in args.stages:
+                            if stage == 'TaskfMRIAnalysis':
+                                tfMRI = stage_func()
+                                session_tfMRI_list.append(tfMRI)
+                                if tfMRI == 'Yes':
+                                    tfMRI_num += 1
+                        tfMRITotal_num += 1
 
             fmriname_list.append([session_fmriname_list])
             volumefMRI_list.append([session_volumefMRI_list])
