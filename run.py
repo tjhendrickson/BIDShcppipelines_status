@@ -277,13 +277,38 @@ def snapshot(json_file):
     print(dMRI_summary)
     print("dMRI failures: ")
     pp.pprint(dMRI_output)
-
-    
     return sMRI_output, fMRI_output, rsfMRI_output, tfMRI_output, dMRI_output
     #needed_processing(failed_sMRIs,failed_fMRIs, failed_rsfMRI, failed_tfMRI, failed_dMRIs)
 
-def needed_processing(failed_sMRIs,failed_fMRIs, failed_rsfMRI, failed_tfMRI, failed_dMRIs):
-    pass
+def main(output_dir):
+    with open(output_dir + '/HCP_processing_status.json', 'w') as json_file:
+        data.update({"Scanning Sessions": session_list})
+        data.update({"PreFreeSurferFinish": pre_FS_list})
+        data.update({"PreFreeSurferFinishTotal": pre_FS_num})
+        data.update({"FreeSurferFinish": FS_list})
+        data.update({"FreeSurferFinishTotal": FS_num})
+        data.update({"PostFreeSurferFinish": post_FS_list})
+        data.update({"PostFreeSurferFinishTotal": post_FS_num})
+        data.update({"fMRINames": fmriname_list})
+        data.update({"fMRIVolumeFinish": volumefMRI_list})
+        data.update({"fMRIVolumeFinishTotal": fMRIVolume_num})
+        data.update({"fMRISurfaceFinish": surfacefMRI_list})
+        data.update({"fMRISurfaceFinishTotal": fMRISurface_num})
+        data.update({"ICAFIXFinish": ICAFIX_list})
+        data.update({"ICAFIXFinishTotal": ICAFIX_num})
+        data.update({"MSMAllFinish": MSMAll_list})
+        data.update({"MSMAllFinishTotal": MSMAll_num})
+        data.update({"RestingStateStatsFinish": RestingStateStats_list})
+        data.update({"RestingStateStatsFinishTotal": RestingStateStats_num})
+        data.update({"TaskfMRIAnalysisFinish": tfMRI_list})
+        data.update({"TaskfMRIAnalysisFinishTotal": tfMRI_num})
+        data.update({"DiffusionPreProcessingFinish": Diffusion_list})
+        data.update({"DiffusionPreProcessingTotal": Diffusion_num})
+        json.dump(data, json_file)
+        os.system("chmod a+rw " +args.output_dir + '/HCP_processing_status.json')
+        json_file.close()
+    sMRI_output, fMRI_output, rsfMRI_output, tfMRI_output, dMRI_output = snapshot(output_dir + '/HCP_processing_status.json')
+    return sMRI_output, fMRI_output, rsfMRI_output, tfMRI_output, dMRI_output
     
     
 
@@ -502,31 +527,5 @@ for subject_label in subjects_to_analyze:
                     if Diffusion == 'Yes':
                         Diffusion_num += 1
 
-with open(args.output_dir + '/HCP_processing_status.json', 'w') as json_file:
-    data.update({"Scanning Sessions": session_list})
-    data.update({"PreFreeSurferFinish": pre_FS_list})
-    data.update({"PreFreeSurferFinishTotal": pre_FS_num})
-    data.update({"FreeSurferFinish": FS_list})
-    data.update({"FreeSurferFinishTotal": FS_num})
-    data.update({"PostFreeSurferFinish": post_FS_list})
-    data.update({"PostFreeSurferFinishTotal": post_FS_num})
-    data.update({"fMRINames": fmriname_list})
-    data.update({"fMRIVolumeFinish": volumefMRI_list})
-    data.update({"fMRIVolumeFinishTotal": fMRIVolume_num})
-    data.update({"fMRISurfaceFinish": surfacefMRI_list})
-    data.update({"fMRISurfaceFinishTotal": fMRISurface_num})
-    data.update({"ICAFIXFinish": ICAFIX_list})
-    data.update({"ICAFIXFinishTotal": ICAFIX_num})
-    data.update({"MSMAllFinish": MSMAll_list})
-    data.update({"MSMAllFinishTotal": MSMAll_num})
-    data.update({"RestingStateStatsFinish": RestingStateStats_list})
-    data.update({"RestingStateStatsFinishTotal": RestingStateStats_num})
-    data.update({"TaskfMRIAnalysisFinish": tfMRI_list})
-    data.update({"TaskfMRIAnalysisFinishTotal": tfMRI_num})
-    data.update({"DiffusionPreProcessingFinish": Diffusion_list})
-    data.update({"DiffusionPreProcessingTotal": Diffusion_num})
-    json.dump(data, json_file)
-    os.system("chmod a+rw " +args.output_dir + '/HCP_processing_status.json')
-    json_file.close()
-snapshot(args.output_dir + '/HCP_processing_status.json')
+main(args.output_dir)
 
