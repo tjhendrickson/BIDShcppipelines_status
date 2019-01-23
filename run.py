@@ -282,7 +282,7 @@ def snapshot(json_file):
     return sMRI_output, fMRI_output, rsfMRI_output, tfMRI_output, dMRI_output
     #needed_processing(failed_sMRIs,failed_fMRIs, failed_rsfMRI, failed_tfMRI, failed_dMRIs)
 
-def main(output_dir, json_file):
+def main(output_dir):
     with open(output_dir + '/HCP_processing_status.json', 'w') as json_file:
         data.update({"Scanning Sessions": session_list})
         data.update({"PreFreeSurferFinish": pre_FS_list})
@@ -535,5 +535,8 @@ for subject_label in subjects_to_analyze:
                     Diffusion_list.append(Diffusion)
                     if Diffusion == 'Yes':
                         Diffusion_num += 1
+
+#run main function
+main(args.output_dir)
 
 
