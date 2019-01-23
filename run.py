@@ -278,6 +278,15 @@ def snapshot(json_file):
     print("dMRI failures: ")
     pp.pprint(dMRI_output)
 
+    
+    return sMRI_output, fMRI_output, rsfMRI_output, tfMRI_output, dMRI_output
+    #needed_processing(failed_sMRIs,failed_fMRIs, failed_rsfMRI, failed_tfMRI, failed_dMRIs)
+
+def needed_processing(failed_sMRIs,failed_fMRIs, failed_rsfMRI, failed_tfMRI, failed_dMRIs):
+    pass
+    
+    
+
 parser = argparse.ArgumentParser(description='HCP Pipeline status BIDS App (structural, functional MRI, diffusion, resting state).')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
                     'formatted according to the BIDS standard.')
