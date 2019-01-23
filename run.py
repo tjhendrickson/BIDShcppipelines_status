@@ -277,10 +277,12 @@ def snapshot(json_file):
     print(dMRI_summary)
     print("dMRI failures: ")
     pp.pprint(dMRI_output)
+
+    
     return sMRI_output, fMRI_output, rsfMRI_output, tfMRI_output, dMRI_output
     #needed_processing(failed_sMRIs,failed_fMRIs, failed_rsfMRI, failed_tfMRI, failed_dMRIs)
 
-def main(output_dir):
+def main(output_dir, json_file):
     with open(output_dir + '/HCP_processing_status.json', 'w') as json_file:
         data.update({"Scanning Sessions": session_list})
         data.update({"PreFreeSurferFinish": pre_FS_list})
@@ -308,8 +310,15 @@ def main(output_dir):
         os.system("chmod a+rw " +args.output_dir + '/HCP_processing_status.json')
         json_file.close()
     sMRI_output, fMRI_output, rsfMRI_output, tfMRI_output, dMRI_output = snapshot(output_dir + '/HCP_processing_status.json')
-    return sMRI_output, fMRI_output, rsfMRI_output, tfMRI_output, dMRI_output
-    
+    with open(output_dir + '/HCP_processing_status.json', 'w') as json_file:
+        data.update({"sMRI failures": sMRI_output})
+        data.update({"fMRI failures": fMRI_output})
+        data.update({"rsfMRI failures": rsfMRI_output})
+        data.update({"tfMRI failures": tfMRI_output})
+        data.update({"dMRI failures": dMRI_output})
+        json.dump(data, json_file)
+        os.system("chmod a+rw " +args.output_dir + '/HCP_processing_status.json')
+        json_file.close()
     
 
 parser = argparse.ArgumentParser(description='HCP Pipeline status BIDS App (structural, functional MRI, diffusion, resting state).')
@@ -527,5 +536,4 @@ for subject_label in subjects_to_analyze:
                     if Diffusion == 'Yes':
                         Diffusion_num += 1
 
-main(args.output_dir)
 
