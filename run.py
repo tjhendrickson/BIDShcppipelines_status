@@ -135,32 +135,6 @@ def run_MSMAll_processing(**args):
             MSMAll = 'Yes'
     return MSMAll
 
-def run_RestingStateStats_processing(**args):
-    args.update(os.environ)
-    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/RestingStateStats/{fmriname}*.pconn.nii"
-    cmd = cmd.format(**args)
-    cmd = glob(cmd)
-    if not cmd:
-        RSS = 'No'
-    else:
-        output = subprocess.check_output("stat " + cmd[0] + "| grep 'Modify' ", shell=True)
-        if len(output) > 0:
-            RSS = 'Yes'
-        else:
-            RSS = 'No'
-    return RSS
-
-def run_TaskfMRIAnalysis_processing(**args):
-    args.update(os.environ)
-    cmd = "{path}/{subject}/MNINonLinear/Results/{fmriname}/{shortfmriname}*.feat"
-    cmd = cmd.format(**args)
-    cmd = glob(cmd)
-    if not cmd:
-        tfMRI = 'No'
-    else:
-        tfMRI = 'Yes'
-    return tfMRI
-
 
 def run_diffusion_processsing(**args):
     args.update(os.environ)
@@ -184,16 +158,14 @@ def snapshot(json_file):
     kk=0
     ll=0
     mm=0
+
     session_total = len(data["Scanning Sessions"])
     fmri_total = len([ item for sublist in data["fMRINames"] for subsublist in sublist for item in subsublist])
-    rsfMRI_total = len([ item for sublist in data["fMRINames"] for subsublist in sublist for item in subsublist if 'rest' == item.split("task-")[1].split("_")[0]])
-    tfMRI_total = fmri_total - rsfMRI_total
     
     failed_sMRIs = []
     failed_fMRIs = []
     failed_dMRIs = []
-    failed_rsfMRI = []
-    failed_tfMRI = []
+
     for ses_counter, session_id in enumerate(data["Scanning Sessions"]):
         if data["PostFreeSurferFinish"][ses_counter][0] == 'Yes':
             ii = ii + 1
@@ -208,23 +180,11 @@ def snapshot(json_file):
                 jj = jj + 1
             else:
                 failed_fMRIs.append(data["fMRINames"][ses_counter][0][fMRI_counter])
-        for RSS_counter, RSS_status in enumerate(data["RestingStateStatsFinish"][ses_counter][0]):
-            if RSS_status == 'Yes':
-                ll = ll + 1
-            else:
-                failed_rsfMRI.append(data["fMRINames"][ses_counter][0][RSS_counter])
-        for tfMRI_counter, tfMRI_status in enumerate(data["TaskfMRIAnalysisFinish"][ses_counter][0]):
-            if tfMRI_status == 'Yes':
-                mm = mm + 1
-            else:
-                failed_tfMRI.append(data["fMRINames"][ses_counter][0][tfMRI_counter])
 
     failed_fMRIs = [str(item) for item in failed_fMRIs]
     failed_sMRIs = [str(item) for item in failed_sMRIs]
     failed_dMRIs = [str(item) for item in failed_dMRIs]
-    failed_rsfMRI = [str(item) for item in failed_rsfMRI]
-    failed_tfMRI = [str(item) for item in failed_tfMRI]
-
+    
     if ii < session_total:
         sMRI_summary = "%s out of %s sMRI sessions completed." % (ii, session_total)
         sMRI_output = sorted(failed_sMRIs)
@@ -243,18 +203,7 @@ def snapshot(json_file):
     else:
         dMRI_summary = "All dMRI scans completed"
         dMRI_output = ""
-    if ll < rsfMRI_total:
-        rsfMRI_summary = "%s out of %s rsfMRI sessions completed processing." % (ll, rsfMRI_total)
-        rsfMRI_output = sorted(failed_rsfMRI)
-    else:
-        rsfMRI_summary = "All rsfMRI processing completed"
-        rsfMRI_output = ""
-    if mm < tfMRI_total:
-        tfMRI_summary = "%s out of %s tfMRI sessions completed first level processing." % (mm, tfMRI_total)
-        tfMRI_output = sorted(failed_tfMRI)
-    else:
-        tfMRI_summary = "All tfMRI first level processing completed."
-        tfMRI_output = ""
+    
     print("Total number of scanning sessions: %s" %(session_total))
     pp = pprint.PrettyPrinter(indent = 4)
     print()
@@ -277,11 +226,8 @@ def snapshot(json_file):
     print(dMRI_summary)
     print("dMRI failures: ")
     pp.pprint(dMRI_output)
-
+    return sMRI_output, fMRI_output, dMRI_output
     
-    return sMRI_output, fMRI_output, rsfMRI_output, tfMRI_output, dMRI_output
-    #needed_processing(failed_sMRIs,failed_fMRIs, failed_rsfMRI, failed_tfMRI, failed_dMRIs)
-
 def main(output_dir):
     with open(output_dir + '/HCP_processing_status.json', 'w') as json_file:
         data.update({"Scanning Sessions": session_list})
