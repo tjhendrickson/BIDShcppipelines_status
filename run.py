@@ -158,7 +158,6 @@ def snapshot(json_file):
     failed_MSMAll = []
     failed_dMRIs = []
 
-    pdb.set_trace()
     for ses_counter, session_id in enumerate(data["Scanning Sessions"]):
         if data["PostFreeSurferFinish"][ses_counter][0] == 'Yes':
             ii = ii + 1
