@@ -149,7 +149,6 @@ def snapshot(json_file):
     jj=0
     kk=0
     ll=0
-    mm=0
 
     session_total = len(data["Scanning Sessions"])
     fmri_total = len([ item for sublist in data["fMRINames"] for subsublist in sublist for item in subsublist])
@@ -157,7 +156,6 @@ def snapshot(json_file):
     failed_sMRIs = []
     failed_fMRIs = []
     failed_MSMAll = []
-    failed_ICAFIX = []
     failed_dMRIs = []
 
     pdb.set_trace()
@@ -180,11 +178,6 @@ def snapshot(json_file):
                 ll= ll + 1
             else:
                 failed_MSMAll.append(data['fMRINames'][ses_counter][0][MSMAll_counter])
-        for ICAFIX_counter, ICAFIX_status in enumerate(data['ICAFIXFinish'][ses_counter][0]):
-            if ICAFIX_status == 'Yes':
-                mm= mm + 1
-            else:
-                failed_ICAFIX.append(data['fMRINames'][ses_counter][0][ICAFIX_counter])
 
                 
 
@@ -192,7 +185,6 @@ def snapshot(json_file):
     failed_sMRIs = [str(item) for item in failed_sMRIs]
     failed_dMRIs = [str(item) for item in failed_dMRIs]
     failed_MSMAll = [str(item) for item in failed_MSMAll]
-    failed_ICAFIX = [str(item) for item in failed_ICAFIX]
     
     if ii < session_total:
         sMRI_summary = "%s out of %s sMRI sessions completed." % (ii, session_total)
@@ -206,17 +198,11 @@ def snapshot(json_file):
     else:
         fMRI_summary = "All fMRI scans completed."
         fMRI_output = ""
-    if mm < fmri_total:
-        ICAFIX_summary = "%s out of %s fMRI scans with ICAFIX." %(ll, fmri_total)
-        ICAFIX_output = sorted(failed_ICAFIX)
-    else:
-        ICAFIX_summary = "All fMRI scans with ICAFIX."
-        ICAFIX_output = ""
     if ll < fmri_total:
-        MSMAll_summary = "%s out of %s fMRI scans with MSMAll." %(ll, fmri_total)
+        MSMAll_summary = "%s out of %s fMRI scans with ICAFIX/MSMAll." %(ll, fmri_total)
         MSMAll_output = sorted(failed_MSMAll)
     else:
-        MSMAll_summary = "All fMRI scans with MSMAll."
+        MSMAll_summary = "All fMRI scans with ICAFIX/MSMAll."
         MSMAll_output = ""
     if kk < session_total:
         dMRI_summary = "%s out of %s dMRI sessions completed." % (kk, session_total)
@@ -236,18 +222,14 @@ def snapshot(json_file):
     print("fMRI failures:")
     pp.pprint(fMRI_output)
     print()
-    print(ICAFIX_summary)
-    print('ICAFIX processing failures:')
-    pp.pprint(ICAFIX_output)
-    print()
     print(MSMAll_summary)
-    print('MSMAll processing failures:')
+    print('ICAFIX/MSMAll processing failures:')
     pp.pprint(MSMAll_output)
     print()
     print(dMRI_summary)
     print("dMRI failures: ")
     pp.pprint(dMRI_output)
-    return sMRI_output, fMRI_output, ICAFIX_output, MSMAll_output, dMRI_output
+    return sMRI_output, fMRI_output, MSMAll_output, dMRI_output
     
 def main(output_dir):
     with open(output_dir + '/HCP_processing_status.json', 'w') as json_file:
@@ -272,10 +254,11 @@ def main(output_dir):
         json.dump(data, json_file)
         os.system("chmod a+rw " +args.output_dir + '/HCP_processing_status.json')
         json_file.close()
-    sMRI_output, fMRI_output, ICAFIX_output, MSMAll_output, dMRI_output = snapshot(output_dir + '/HCP_processing_status.json')
+    sMRI_output, fMRI_output, MSMAll_output, dMRI_output = snapshot(output_dir + '/HCP_processing_status.json')
     with open(output_dir + '/HCP_processing_status.json', 'w') as json_file:
         data.update({"sMRI failures": sMRI_output})
         data.update({"fMRI failures": fMRI_output})
+        data.update({"ICAFIX/MSMAll failures": MSMAll_output})
         data.update({"dMRI failures": dMRI_output})
         json.dump(data, json_file)
         os.system("chmod a+rw " +args.output_dir + '/HCP_processing_status.json')
